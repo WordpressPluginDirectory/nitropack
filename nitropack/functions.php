@@ -778,8 +778,8 @@ function nitropack_init() {
                 }
             }
 
-            if (!nitropack_is_optimizer_request() && nitropack_passes_page_requirements()) {// This is a cacheable URL
-                add_action('wp_head', 'nitropack_print_telemetry_script');
+            if (!nitropack_is_optimizer_request()) {
+                add_action('wp_head', 'nitropack_print_generic_nitro_script');
             }
         }
     }
@@ -893,20 +893,20 @@ function nitropack_get_cookie_handler_script() {
 </script>";
 }
 
-function nitropack_print_telemetry_script() {
-    if (defined("NITROPACK_TELEMETRY_PRINTED")) return;
-    define("NITROPACK_TELEMETRY_PRINTED", true);
+function nitropack_print_generic_nitro_script() {
+    if (defined("NITROPACK_GENERIC_NITRO_SCRIPT_PRINTED")) return;
+    define("NITROPACK_GENERIC_NITRO_SCRIPT_PRINTED", true);
     echo apply_filters("nitro_script_output", nitropack_get_telemetry_meta());
-    echo apply_filters("nitro_script_output", nitropack_get_telemetry_script());
+    echo apply_filters("nitro_script_output", nitropack_get_generic_nitro_script());
 }
 
-function nitropack_get_telemetry_script() {
+function nitropack_get_generic_nitro_script() {
     $siteConfig = nitropack_get_site_config();
     if ($siteConfig && !empty($siteConfig["siteId"]) && !empty($siteConfig["siteSecret"])) {
         if (null !== $nitro = get_nitropack_sdk($siteConfig["siteId"], $siteConfig["siteSecret"]) ) {
             $config = $nitro->getConfig();
-            if (!empty($config->Telemetry)) {
-                return "<script id='nitro-telemetry'>" . $config->Telemetry . "</script>";
+            if (!empty($config->GenericNitroScript->Script)) {
+                return "<script id='nitro-generic' nitro-exclude>" . $config->GenericNitroScript->Script . "</script>";
             }
         }
     }
@@ -918,6 +918,7 @@ function nitropack_get_telemetry_meta() {
     $disabledReason = get_nitropack()->getDisabledReason();
     $missReason = $disabledReason !== NULL ? $disabledReason : "cache not found";
     $pageType = get_nitropack()->getPageType();
+    $isEligibleForOptimization = nitropack_passes_page_requirements();
     $metaObj = "window.NPTelemetryMetadata={";
 
     if ($missReason) {
@@ -927,6 +928,8 @@ function nitropack_get_telemetry_meta() {
     if ($pageType) {
         $metaObj .= "pageType: '$pageType',";
     }
+
+    $metaObj .= "isEligibleForOptimization: " . ($isEligibleForOptimization ? "true" : "false") . ",";
 
     $metaObj .= "}";
 
@@ -2489,7 +2492,7 @@ function nitropack_verify_connect($siteId, $siteSecret) {
     }
 
     if (empty($siteId) || empty($siteSecret)) {
-        nitropack_json_and_exit(array("status" => "error", "message" => __( 'Site ID and Site Secret cannot be empty', 'nitropack' )));
+        nitropack_json_and_exit(array("status" => "error", "message" => __( 'API Key and API Secret Key cannot be empty', 'nitropack' )));
     }
 
     //remove tags and whitespaces
@@ -2497,7 +2500,7 @@ function nitropack_verify_connect($siteId, $siteSecret) {
     $siteSecret = trim(esc_attr($siteSecret));
 
     if (!nitropack_validate_site_id($siteId) || !nitropack_validate_site_secret($siteSecret)) {
-        nitropack_json_and_exit(array("status" => "error", "message" => __( 'Invalid Site ID or Site Secret value', 'nitropack' )));
+        nitropack_json_and_exit(array("status" => "error", "message" => __( 'Invalid API Key or API Secret Key value', 'nitropack' )));
     }
 
     try {
@@ -3202,13 +3205,23 @@ function nitropack_handle_request($servedFrom = "unknown") {
 
                                 nitropack_header('X-Nitro-Cache: HIT');
                                 nitropack_header('X-Nitro-Cache-From: ' . $servedFrom);
+                                $cjHandler = new \NitroPack\SDK\Utils\CjHandler($nitro);
+                                $cjHandler->handleQueryParams();
                                 $nitro->pageCache->readfile();
                                 exit;
                             } else {
                                 // We need the following if..else block to handle bot requests which will not be firing our beacon
                                 if (nitropack_is_warmup_request()) {
-                                    $nitro->hasRemoteCache("default"); // Only ping the API letting our service know that this page must be cached.
-                                    exit; // No need to continue handling this request. The response is not important.
+                                    if (!empty($_SERVER["HTTP_ACCEPT_LANGUAGE"])) {
+                                        add_action("init", function() use ($nitro) {
+                                            $nitro->hasRemoteCache("default"); // Only ping the API letting our service know that this page must be cached.
+                                            exit;
+                                        }, 9999);
+                                        return; // We need to wait for a language plugin (if present) to redirect
+                                    } else {
+                                        $nitro->hasRemoteCache("default"); // Only ping the API letting our service know that this page must be cached.
+                                        exit; // No need to continue handling this request. The response is not important.
+                                    }
                                 } else if (nitropack_is_lighthouse_request() || nitropack_is_gtmetrix_request() || nitropack_is_pingdom_request()) {
                                     $nitro->hasRemoteCache("default"); // Ping the API letting our service know that this page must be cached.
                                 }
@@ -3217,6 +3230,8 @@ function nitropack_handle_request($servedFrom = "unknown") {
                                 if ($nitro->hasLocalCache()) {
                                     nitropack_header('X-Nitro-Cache: STALE');
                                     nitropack_header('X-Nitro-Cache-From: ' . $servedFrom);
+                                    $cjHandler = new \NitroPack\SDK\Utils\CjHandler($nitro);
+                                    $cjHandler->handleQueryParams();
                                     $nitro->pageCache->readfile();
                                     exit;
                                 } else {

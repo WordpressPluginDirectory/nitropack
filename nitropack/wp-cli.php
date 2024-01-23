@@ -8,10 +8,10 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 * ## OPTIONS
 *
 * <siteID>
-* : The site ID obtained from https://nitropack.io/user/connect
+* : The API Key obtained from https://nitropack.io/user/connect
 *
 * <siteSecret>
-* : The site secret obtained from https://nitropack.io/user/connect
+* : The API Secret Key obtained from https://nitropack.io/user/connect
 *
 * ## EXAMPLES
 *

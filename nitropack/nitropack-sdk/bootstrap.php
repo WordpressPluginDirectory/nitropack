@@ -392,13 +392,14 @@ if ( null !== $nitro = nitropack_get_instance() ) {
     if ($nitro->isAllowedUrl($nitro->getUrl()) && $nitro->isAllowedRequest(true)) {
         nitropack_init_webhooks();
         ob_start(function($buffer) {
+            $isGzipped = substr($buffer, 0, 3) === "\x1f\x8b\x08";
+            if ($isGzipped && (!function_exists("gzdecode") || !function_exists("gzencode"))) {
+                return $buffer;
+            }
+
             if (nitropack_is_optimizer_request()) {
                 nitropack_add_tag(NULL, true); // Flush registered tags
             }
-
-            // Remove BOM from output
-            $bom = pack('H*','EFBBBF');
-            $buffer = preg_replace("/^($bom)*/", '', $buffer);
 
             // Get the content type
             $respHeaders = headers_list();
@@ -415,8 +416,25 @@ if ( null !== $nitro = nitropack_get_instance() ) {
                 return $buffer;
             }
 
+            if ($isGzipped) {
+                // Make a copy to return later in case something goes wrong
+                $bufferCopy = $buffer;
+                $buffer = gzdecode($buffer);
+            }
+
+            // Remove BOM from output
+            $bom = pack('H*','EFBBBF');
+            $buffer = preg_replace("/^($bom)*/", '', $buffer);
+
             if (!preg_match("/<html.*?\s(amp|⚡)(\s|=|>)/", $buffer)) {
                 $buffer = str_replace("</body", nitropack_get_beacon_script() . "</body", $buffer);
+            }
+
+            if ($isGzipped) {
+                $buffer = gzencode($buffer);
+                if (empty($buffer)) {
+                    return $bufferCopy;
+                }
             }
 
             return $buffer;

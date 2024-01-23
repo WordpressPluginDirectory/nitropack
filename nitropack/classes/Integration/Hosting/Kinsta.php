@@ -2,6 +2,8 @@
 
 namespace NitroPack\Integration\Hosting;
 
+use NitroPack\SDK\Device;
+
 class Kinsta extends Hosting {
     const STAGE = "very_early";
 
@@ -13,6 +15,13 @@ class Kinsta extends Hosting {
         if ($this->getHosting() == "kinsta") {
             add_action('nitropack_execute_purge_url', [$this, 'purgeUrl']);
             add_action('nitropack_execute_purge_all', [$this, 'purgeAll']);
+
+            if ( ! empty($_SERVER["HTTP_USER_AGENT"]) && stripos($_SERVER["HTTP_USER_AGENT"], "Nitro-Optimizer-Agent") !== false) {
+                add_filter("wp_is_mobile", function() {
+                    $device = new Device($_SERVER["HTTP_USER_AGENT"]);
+                    return $device->isMobile();
+                }, PHP_INT_MAX);
+            }
         }
     }
 

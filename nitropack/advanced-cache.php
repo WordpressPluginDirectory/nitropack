@@ -51,21 +51,6 @@ if (defined("NITROPACK_VERSION") && defined("NITROPACK_ADVANCED_CACHE_VERSION") 
                         define("NITROPACK_BEACON_PRINTED", true);
                         $buffer = str_replace("</body", nitropack_get_beacon_script() . "</body", $buffer);
                     }
-
-                    $config = $nitro->getConfig();
-                    if (!empty($config->BusinessWebVitals->Status) && !empty($config->BusinessWebVitals->Script)) {
-                        $bwvScript = sprintf('<script nitro-exclude id="nitrobwv">%s</script>', $config->BusinessWebVitals->Script);
-                    
-                        if (strpos($buffer, '</head>') !== false) {
-                            $buffer = str_replace('</head>', $bwvScript . '</head>', $buffer);
-                        } else if (strpos($buffer, '<body>') !== false) {
-                            $buffer = str_replace('<body>', '<body>' . $bwvScript, $buffer);
-                        } else if (strpos($buffer, '</body>') !== false) {
-                            $buffer = str_replace('</body>', $bwvScript . '</body>', $buffer);
-                        } else if (strpos($buffer, '</html>') !== false) {
-                            $buffer = str_replace('</html>', $bwvScript . '</html>', $buffer);
-                        }
-                    }
                 }
                 
 

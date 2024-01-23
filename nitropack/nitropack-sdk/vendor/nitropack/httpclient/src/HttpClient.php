@@ -29,6 +29,7 @@ class HttpClient {
     public static $backtraces = array();
 
     private static $is_registered_shutdown_function = false;
+    private static $create_client_callback = NULL;
     private static $fetch_start_callback = NULL;
     private static $fetch_end_callback = NULL;
     private static $hosts_cache = array();
@@ -122,6 +123,10 @@ class HttpClient {
         if (is_resource($sock)) {
             fclose($sock);
         }
+    }
+
+    public static function setCreateClientCallback($callback) {
+        HttpClient::$create_client_callback = $callback;
     }
 
     public static function setFetchStartCallback($callback) {
@@ -315,6 +320,10 @@ class HttpClient {
         if (!self::$is_registered_shutdown_function) {
             register_shutdown_function(array("\NitroPack\HttpClient\HttpClient", "drainConnections"));
             self::$is_registered_shutdown_function = true;
+        }
+
+        if (HttpClient::$create_client_callback) {
+            call_user_func(HttpClient::$create_client_callback, $this);
         }
     }
 

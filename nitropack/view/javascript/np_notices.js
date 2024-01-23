@@ -12,6 +12,7 @@
       var xhr = new XMLHttpRequest();
       var data = new FormData();
       data.append('action', 'nitropack_rml_notification');
+      data.append('nonce', nitropack_notices_vars.nonce);
       data.append('notification_id', e.target.dataset.notification_id);
       data.append('notification_end', e.target.dataset.notification_end);
 

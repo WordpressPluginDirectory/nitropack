@@ -14,9 +14,9 @@
                     <div id="submitdiv" class="postbox ">
                         <h3><?php esc_html_e( 'Welcome!', 'nitropack' ); ?></h3>
                         <div id="manual-connect-fields" style="display:none;">
-                          <h2><?php esc_html_e( 'Enter site ID and site secret to start using NitroPack', 'nitropack' ); ?></h2>
-                          <input id="nitropack-siteid-input" name="nitropack-siteId" type="text" class="form-control" placeholder="<?php esc_html_e( 'Site ', 'nitropack' ); ?>">
-                          <input id="nitropack-sitesecret-input" name="nitropack-siteSecret" type="text" class="form-control" placeholder="<?php esc_html_e( 'Site Secret', 'nitropack' ); ?>">
+                          <h2><?php esc_html_e( 'Enter API Key and API Secret Key to start using NitroPack', 'nitropack' ); ?></h2>
+                          <input id="nitropack-siteid-input" name="nitropack-siteId" type="text" class="form-control" placeholder="<?php esc_html_e( 'API Key ', 'nitropack' ); ?>">
+                          <input id="nitropack-sitesecret-input" name="nitropack-siteSecret" type="text" class="form-control" placeholder="<?php esc_html_e( 'API Secret Key', 'nitropack' ); ?>">
                         </div>
                         <div class="e-submit">
                             <a class="btn btn-primary white" id="api-details-form-submit" href="javascript:void(0);">

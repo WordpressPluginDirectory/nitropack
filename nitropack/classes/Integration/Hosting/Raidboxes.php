@@ -15,7 +15,8 @@ use \NitroPack\SDK\Filesystem;
 class Raidboxes extends Hosting {
     const STAGE = "very_early";
 
-    private $isPurgeNeeded = false;
+    private $nginx_cache_path = ABSPATH . 'wp-content/nginx_cache';
+    private $wordpress_gt_cache_path = ABSPATH . 'wp-content/gt-cache';
 
     /**
      * Detect if Raidboxes is active
@@ -34,31 +35,22 @@ class Raidboxes extends Hosting {
      */
     public function init($stage) {
         if (self::detect()) {
-            switch ($stage) {
-                case "very_early":
-                    \NitroPack\Integration::initSemAcquire();
-                    \NitroPack\Integration::onShutdown([$this, 'purgeCache']);
-                    return true;
-                case "late":
-                    \NitroPack\Integration::initSemRelease();
-                    break;
-            }
-
-            add_action('nitropack_execute_purge_url', [$this, 'logPurgeNeed']);
-            add_action('nitropack_execute_purge_all', [$this, 'logPurgeNeed']);
+            add_action('nitropack_execute_purge_url', [$this, 'purgeCache']);
+            add_action('nitropack_execute_purge_all', [$this, 'purgeCache']);
         }
     }
 
-    public function logPurgeNeed() {
-        $this->isPurgeNeeded = true;
+    private function purgeCacheDirectory($directory) {
+        try {
+            Filesystem::deleteDir($directory);
+        } catch (\Exception $e) {
+            // TODO: Log this
+            return false;
+        }
     }
 
     public function purgeCache() {
-        if ($this->isPurgeNeeded) {
-            // There isn't a way to purge the cache for a single URL
-            // So we are purging the entire cache :(
-            $rbNginx = new \RaidboxesNginxCacheFunctions();
-            $rbNginx->purge_cache();
-        }
+        $this->purgeCacheDirectory($this->nginx_cache_path);
+        $this->purgeCacheDirectory($this->wordpress_gt_cache_path);
     }
 }

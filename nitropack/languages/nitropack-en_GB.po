@@ -63,7 +63,7 @@ msgid "Welcome!"
 msgstr ""
 
 #: view/connect.php:17
-msgid "Enter site ID and site secret to start using NitroPack"
+msgid "Enter API Key and API Secret Key to start using NitroPack"
 msgstr ""
 
 #: view/connect.php:24
@@ -400,7 +400,7 @@ msgid "Site "
 msgstr ""
 
 #: view/connect.php:19
-msgid "Site Secret"
+msgid "API Secret Key"
 msgstr ""
 
 #: view/connect.php:93
@@ -877,11 +877,11 @@ msgid "Incomplete site config. Please reinstall the plugin!"
 msgstr ""
 
 #: functions.php:2249
-msgid "Site ID and Site Secret cannot be empty"
+msgid "API Key and API Secret Key cannot be empty"
 msgstr ""
 
 #: functions.php:2257
-msgid "Invalid Site ID or Site Secret value"
+msgid "Invalid API Key or API Secret Key value"
 msgstr ""
 
 #: functions.php:2266

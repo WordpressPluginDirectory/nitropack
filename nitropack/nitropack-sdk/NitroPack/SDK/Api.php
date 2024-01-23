@@ -354,6 +354,16 @@ class Api
         $this->varnish->configure($settings);
     }
 
+    public function getVarnishIntegrationConfig()
+    {
+        return $this->varnish->get();
+    }
+
+    public function setVarnishIntegrationConfig($settings)
+    {
+        $this->varnish->set($settings);
+    }
+
     public function enableExcludedUrls()
     {
         $this->excludedurls->enable();

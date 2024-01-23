@@ -2,9 +2,9 @@
 Contributors: nitropack
 Tags: caching,performance,optimize,pagespeed,lazy load,cdn,critical css,compression,defer css javascript,minify css,minify,web vitals
 Requires at least: 4.7
-Tested up to: 6.4.1
+Tested up to: 6.4.2
 Requires PHP: 5.6
-Stable tag: 1.10.4
+Stable tag: 1.11.0
 License: GNU General Public License, version 2
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -102,8 +102,8 @@ Or rate us on [WordPress](https://wordpress.org/support/plugin/nitropack/reviews
 
 1. Click the “Download” button on this page. You’ll get a .zip file, which you can save on your computer.
 2. Go to your website’s dashboard, open the “Plugins” menu and click “Add new”. After that, choose the nitropack.zip file and click “Install Now”
-3. You now need to **connect your website to NitroPack**. Simply go to [https://nitropack.io/](https://nitropack.io/) and create an account. After you log in, you’ll see a “Connect Your Website” menu on the left. There, you’ll find a Site ID and Site Secret.
-4. Go back to your website’s dashboard. Click “Settings” and find the NitroPack option. Finally, enter your Site ID and Site Secret and click “Connect to NitroPack”.
+3. You now need to **connect your website to NitroPack**. Simply go to [https://nitropack.io/](https://nitropack.io/) and create an account. After you log in, you’ll see a “Connect Your Website” menu on the left. There, you’ll find a API Key and API Secret Key.
+4. Go back to your website’s dashboard. Click “Settings” and find the NitroPack option. Finally, enter your API Key and API Secret Key and click “Connect to NitroPack”.
 
 That’s all there is to it!
 
@@ -162,6 +162,13 @@ Yes, the plugin uses the [Intercom Chat Widget](https://widget.intercom.io), whi
 5. The only solution you will ever need
 
 == Changelog ==
+
+= 1.11.0 =
+* New Feature: Support for language variations based on browser language preferences
+* New Feature: Compatibility with CJ tracker
+* Improvement: Better compatibility with RaidBoxes
+* Bug fix: Fix issue with mobile detection on Kinsta
+* Bug fix: Resolve a nonce issue with the "Remind me later" button in notices
 
 = 1.10.4 =
 * Improvement: Stability improvements

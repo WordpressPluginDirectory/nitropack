@@ -80,8 +80,14 @@ class NitroPack {
         }
     }
 
+    public static function getExternalCustomPrefix() {
+        return !empty($_SERVER["HTTP_X_NITRO_CACHE_PREFIX"]) ? $_SERVER["HTTP_X_NITRO_CACHE_PREFIX"] : NULL;
+    }
+
     public static function addCustomCachePrefix($prefix = "") {
-        self::$cachePrefixes[] = $prefix;
+        if (!in_array($prefix, self::$cachePrefixes)) {
+            self::$cachePrefixes[] = $prefix;
+        }
     }
 
     public static function getCustomCachePrefix() {
@@ -161,6 +167,45 @@ class NitroPack {
             $refererInfo = new Url($_SERVER["HTTP_REFERER"]);
             $this->pageCache->setReferer($refererInfo->getNormalized());
         }
+
+        if ($this->isServiceRequest()) {
+            $customPrefix = self::getExternalCustomPrefix();
+            if ($customPrefix) {
+                self::addCustomCachePrefix($customPrefix);
+            }
+        } else {
+            if (!!$this->config->LanguageVary->Status) {
+                $lang = $this->config->LanguageVary->DefaultLanguage;
+                $clientLanguagePreference = !empty($_SERVER["HTTP_ACCEPT_LANGUAGE"]) ? $_SERVER["HTTP_ACCEPT_LANGUAGE"] : "";
+                $languagePreferences = $this->parseLanguagePreferences($clientLanguagePreference);
+                $possibilities = [];
+                foreach ($languagePreferences as $pref) {
+                    [$langCode, $langVariant, $weight] = $pref;
+
+                    if ($langCode === "*") {
+                        $langTries = [$this->config->LanguageVary->DefaultLanguage];
+                    } else {
+                        $langTries = ["$langCode-$langVariant", $langCode];
+                    }
+
+                    foreach ($langTries as $langTry) {
+                        if (in_array($langTry, $this->config->LanguageVary->AvailableLanguages)) {
+                            $possibilities[] = [$langTry, $weight];
+                        }
+                    }
+                }
+
+                if (!empty($possibilities)) {
+                    usort($possibilities, function($a, $b) {
+                        return $a[1] < $b[1] ? 1 : -1;
+                    });
+                    $lang = $possibilities[0][0];
+                }
+
+                self::addCustomCachePrefix("lang_$lang");
+            }
+        }
+
         if (!empty($this->config->URLPathVersion)) {
             $this->pageCache->setUrlPathVersion($this->config->URLPathVersion);
         }
@@ -173,6 +218,23 @@ class NitroPack {
         $this->pageCache->setDataDir($this->getCacheDir());
 
         $this->useCompression = false;
+    }
+
+    private function parseLanguagePreferences($languagePreferences) {
+        $preferenceParts = array_filter(array_map("trim", explode(",", $languagePreferences)));
+        $preferences = [];
+        foreach ($preferenceParts as $lang) {
+            // Parse variants of the form en-US;q=0.8, en-US, en;q=0.8, en, *;q=0.8, *
+            if (preg_match("/^(?<code>[a-z\*]+)(-(?<variant>[A-Z]+))?(;q=(?<weight>[\d\.]+))?$/", $lang, $matches)) {
+                $langCode = $matches["code"];
+                $langVariant = !empty($matches["variant"]) ? $matches["variant"] : "";
+                $weight = !empty($matches["weight"]) ? (float)$matches["weight"] : 1;
+            }
+
+            $preferences[] = [$langCode, $langVariant, $weight];
+        }
+
+        return $preferences;
     }
 
     public function setReferer($referer) {
@@ -676,21 +738,47 @@ class NitroPack {
     public function purgeProxyCache($url = NULL) {
         if (!empty($this->config->CacheIntegrations)) {
             if (!empty($this->config->CacheIntegrations->Varnish)) {
-                if ($url) {
-                    $url = $this->normalizeUrl($url);
-                    $varnish = new Integrations\Varnish(
-                        $this->config->CacheIntegrations->Varnish->Servers,
-                        $this->config->CacheIntegrations->Varnish->PurgeSingleMethod,
-                        $this->varnishProxyCacheHeaders
-                    );
-                    $varnish->purge($url);
+                if (empty($this->config->CacheIntegrations->Varnish->PurgeConfigSet)) {
+                    if ($url) {
+                        $url = $this->normalizeUrl($url);
+                        $varnish = new Integrations\Varnish(
+                            $this->config->CacheIntegrations->Varnish->Servers,
+                            $this->config->CacheIntegrations->Varnish->PurgeSingleMethod,
+                            $this->varnishProxyCacheHeaders
+                        );
+                        $varnish->purge($url);
+                    } else {
+                        $varnish = new Integrations\Varnish(
+                            $this->config->CacheIntegrations->Varnish->Servers,
+                            $this->config->CacheIntegrations->Varnish->PurgeAllMethod,
+                            $this->varnishProxyCacheHeaders
+                        );
+                        $varnish->purge($this->config->CacheIntegrations->Varnish->PurgeAllUrl);
+                    }
                 } else {
-                    $varnish = new Integrations\Varnish(
-                        $this->config->CacheIntegrations->Varnish->Servers,
-                        $this->config->CacheIntegrations->Varnish->PurgeAllMethod,
-                        $this->varnishProxyCacheHeaders
-                    );
-                    $varnish->purge($this->config->CacheIntegrations->Varnish->PurgeAllUrl);
+                    foreach ($this->config->CacheIntegrations->Varnish->PurgeConfigSet as $purgeSet) {
+                        if ($url) {
+                            foreach ($purgeSet->PurgeSingleHeadersTemplates as $headerTemplateTuple) {
+                                $this->varnishProxyCacheHeaders[$headerTemplateTuple->HeaderName] = $this->valueFromTemplate($url, $headerTemplateTuple->HeaderTemplate);
+                            }
+
+                            $varnish = new Integrations\Varnish(
+                                null,
+                                $purgeSet->PurgeSingleMethod,
+                                $this->varnishProxyCacheHeaders
+                            );
+
+                            $purgeUrl = $this->valueFromTemplate($url, $purgeSet->PurgeSingleTemplate);
+                            $varnish->purgeCache($purgeUrl);
+                        } else {
+                            $varnish = new Integrations\Varnish(
+                                null,
+                                $purgeSet->PurgeAllMethod,
+                                $this->varnishProxyCacheHeaders
+                            );
+                            $varnish->purgeCache($purgeSet->PurgeAllUrl);
+                        }
+                    }
                 }
             }
 
@@ -739,12 +827,16 @@ class NitroPack {
         return true;
     }
 
+    public function isServiceRequest() {
+        return isset($_SERVER["HTTP_X_NITROPACK_REQUEST"]);
+    }
+
     public function isAllowedRequest($allowServiceRequests = false) {
         if (($this->isAJAXRequest() && !$this->isAllowedAJAX()) || !($this->isRequestMethod("GET") || $this->isRequestMethod("HEAD"))) {// TODO: Allow URLs which match a pattern in the AJAX URL whitelist
             return false; // don't cache ajax or not GET requests
         }
 
-        if (!$allowServiceRequests && isset($_SERVER["HTTP_X_NITROPACK_REQUEST"])) { // Skip requests coming from NitroPack
+        if (!$allowServiceRequests && $this->isServiceRequest()) { // Skip requests coming from NitroPack
             return false;
         }
 
@@ -1075,5 +1167,30 @@ class NitroPack {
     private function normalizeUrl($url) {
         $urlObj = new Url($url);
         return $urlObj->getNormalized();
+    }
+
+    /**
+     * Substitutes values from a template based on URL components
+     * @param string $url The URL, from which to extract substitution values
+     * @param string $template The template to use
+     * @return string
+     */
+    private function valueFromTemplate($url, $template) {
+        $urlObj = new Url($url);
+
+        $proxyPurgeTemplate = array
+        (
+            '{{targetUrl}}' => $urlObj->getNormalized(),
+            '{{targetProtocol}}' => $urlObj->getScheme(),
+            '{{targetHost}}' => $urlObj->getHost(),
+            '{{targetPath}}' => $urlObj->getPath(),
+            '{{targetQuery}}' => $urlObj->getQuery(),
+        );
+
+        $templateKeys = array_keys($proxyPurgeTemplate);
+        $templateVals = array_values($proxyPurgeTemplate);
+        $constructed = str_replace($templateKeys, $templateVals, $template);
+        
+        return $constructed;
     }
 }
