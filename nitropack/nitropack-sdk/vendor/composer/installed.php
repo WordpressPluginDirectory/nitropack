@@ -3,7 +3,7 @@
         'name' => 'nitropack/nitropackcloud-sdk',
         'pretty_version' => 'dev-master',
         'version' => 'dev-master',
-        'reference' => 'a0526d8755192dcec69747ee35e6845e6fc99dfe',
+        'reference' => 'bc62ff1034d6560b9840d27321d0d7dfddd7d977',
         'type' => 'package',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -24,7 +24,7 @@
         'nitropack/nitropackcloud-sdk' => array(
             'pretty_version' => 'dev-master',
             'version' => 'dev-master',
-            'reference' => 'a0526d8755192dcec69747ee35e6845e6fc99dfe',
+            'reference' => 'bc62ff1034d6560b9840d27321d0d7dfddd7d977',
             'type' => 'package',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

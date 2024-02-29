@@ -3,7 +3,7 @@
 Plugin Name:  NitroPack
 Plugin URI:   https://nitropack.io/platform/wordpress
 Description:  Automatic optimization for site speed and Core Web Vitals. Use 35+ features, including Caching, image optimization, critical CSS, and Cloudflare CDN.
-Version:      1.11.0
+Version:      1.12.0
 Author:       NitroPack Inc.
 Author URI:   https://nitropack.io/
 License:      GPL2
@@ -39,9 +39,18 @@ if ( \NitroPack\Integration\Plugin\Ezoic::isActive() ) {
 }
 
 add_filter( 'nitro_script_output', function($script) {
+    $isPrefetch = isset($_SERVER['HTTP_SEC_FETCH_DEST'])
+        && $_SERVER['HTTP_SEC_FETCH_DEST'] === 'empty'
+        && (
+            (isset($_SERVER['HTTP_SEC_PURPOSE']) && $_SERVER['HTTP_SEC_PURPOSE'] === 'prefetch')
+            ||
+            (isset($_SERVER['HTTP_PURPOSE']) && $_SERVER['HTTP_PURPOSE'] === 'prefetch')
+        );
+
     $canPrintScripts = !nitropack_is_amp_page() // Make sure we don't accidentally print a non-amp compatible script to an amp page
-        && (!isset($_SERVER['HTTP_SEC_FETCH_DEST']) || $_SERVER['HTTP_SEC_FETCH_DEST'] === 'document') 
+        && (!isset($_SERVER['HTTP_SEC_FETCH_DEST']) || $_SERVER['HTTP_SEC_FETCH_DEST'] === 'document' || $isPrefetch) 
         && (!isset($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) !== 'xmlhttprequest');
+
     if ($canPrintScripts) {
         return $script;
     } else {
@@ -61,6 +70,7 @@ add_action( 'transition_post_status', 'nitropack_handle_post_transition', 10, 3)
 add_action( 'publish_post', 'nitropack_handle_first_publish', 10, 1);
 add_action( 'transition_comment_status', 'nitropack_handle_comment_transition', 10, 3);
 add_action( 'comment_post', 'nitropack_handle_comment_post', 10, 2);
+add_action( 'woocommerce_reduce_order_stock', 'custom_reduce_stock_after_order_placed' );
 add_action( 'switch_theme', 'nitropack_theme_handler' );
 register_shutdown_function('nitropack_execute_purges');
 register_shutdown_function('nitropack_execute_invalidations');
@@ -114,6 +124,7 @@ if ( is_admin() ) {
     add_action( 'wp_ajax_nitropack_disconnect', 'nitropack_disconnect' );
     add_action( 'wp_ajax_nitropack_test_compression_ajax', 'nitropack_test_compression_ajax' );
     add_action( 'wp_ajax_nitropack_set_compression_ajax', 'nitropack_set_compression_ajax' );
+    add_action( 'wp_ajax_nitropack_set_stock_reduce_status', 'nitropack_set_stock_reduce_status' );
     add_action( 'wp_ajax_nitropack_set_auto_cache_purge_ajax', 'nitropack_set_auto_cache_purge_ajax' );
     add_action( 'wp_ajax_nitropack_set_cart_cache_ajax', 'nitropack_set_cart_cache_ajax' );
     add_action( 'wp_ajax_nitropack_set_bb_cache_purge_sync_ajax', 'nitropack_set_bb_cache_purge_sync_ajax' );

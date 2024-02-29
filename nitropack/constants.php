@@ -8,7 +8,7 @@ function nitropack_trailingslashit($string) {
     return rtrim( $string, '/\\' ) . '/';
 }
 
-define( 'NITROPACK_VERSION', '1.11.0' );
+define( 'NITROPACK_VERSION', '1.12.0' );
 define( 'NITROPACK_OPTION_GROUP', 'nitropack' );
 define( 'NITROPACK_SLUG', 'nitropack' );
 define( 'NITROPACK_PLUGIN_DIR', nitropack_trailingslashit(dirname(__FILE__)));
@@ -42,10 +42,7 @@ define( 'NITROPACK_CONFIG_FILE', nitropack_trailingslashit(NITROPACK_DATA_DIR) .
 if (Filesystem::fileExists(NITROPACK_CONFIG_FILE) && NitroPack\WordPress\NitroPack::$nitroDirMigrated) {
 	// Update the config_path according to the new location of the file.
 	// Otherwise it will be ignored later and the plugin will appear disconnected.
-	(function() {
-		$config = new NitroPack\WordPress\Config();
-		$config->updateConfigPath();
-	})();
+    (new NitroPack\WordPress\Config())->updateConfigPath();
 }
 
 add_action( 'plugins_loaded', function() {

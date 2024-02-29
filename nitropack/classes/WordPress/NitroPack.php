@@ -26,9 +26,11 @@ class NitroPack {
     }
 
     public static function getDataDir() {
-        $isRaidBoxes = \NitroPack\Integration\Hosting\Raidboxes::detect();
-        $isPantheon = \NitroPack\Integration\Hosting\Pantheon::detect();
-        $isWpe = \NitroPack\Integration\Hosting\WPEngine::detect();
+        $isRaidBoxes     = \NitroPack\Integration\Hosting\Raidboxes::detect();
+        $isPantheon      = \NitroPack\Integration\Hosting\Pantheon::detect();
+        $isWpe           = \NitroPack\Integration\Hosting\WPEngine::detect();
+        $isCloudways     = \NitroPack\Integration\Hosting\Cloudways::detect();
+        $isRocketNet     = \NitroPack\Integration\Hosting\RocketNet::detect();
         $currentFilePath = __FILE__;
         
         if ($isWpe) {
@@ -42,7 +44,7 @@ class NitroPack {
         $newNitroDir = nitropack_trailingslashit(WP_CONTENT_DIR) . 'cache/' . NITROPACK_CACHE_DIR_NAME;
         $nitroDir = $newNitroDir;
 
-        if ($isRaidBoxes) {
+        if ($isRaidBoxes || $isRocketNet || $isCloudways) {
             $nitroDir = $oldNitroDirs[0];
         } else if ($isPantheon) {
             $nitroDir = nitropack_trailingslashit(WP_CONTENT_DIR) . 'uploads/' . NITROPACK_CACHE_DIR_NAME;

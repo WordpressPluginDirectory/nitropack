@@ -212,8 +212,8 @@ class GravityForms {
 
 		if ($get_patterns) {
 			foreach ($get_patterns as $pattern) {
-
-				$block_name = ((array)$pattern)['name'];
+				$pattern    = (array) $pattern;
+				$block_name = $pattern['name'];
 
 				if (strpos($block_name, 'gravityforms/') !== false) {
 					$pattern_names[] = $block_name;
@@ -283,7 +283,7 @@ class GravityForms {
 
 			$shortcode_attributes['ajax'] = 'true';
 
-			$shortcode_attribute_string = implode(' ', array_map(fn($k, $v) => "$k=\"$v\"", array_keys($shortcode_attributes), $shortcode_attributes));
+			$shortcode_attribute_string = implode(' ', array_map(static function ($k, $v) { return "$k=\"$v\""; }, array_keys($shortcode_attributes), $shortcode_attributes));
 
 			echo do_shortcode( '[gravityform '.$shortcode_attribute_string.']');
 		}

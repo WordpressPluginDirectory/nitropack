@@ -769,14 +769,14 @@ class NitroPack {
                             );
 
                             $purgeUrl = $this->valueFromTemplate($url, $purgeSet->PurgeSingleTemplate);
-                            $varnish->purgeCache($purgeUrl);
+                            $varnish->purge($purgeUrl);
                         } else {
                             $varnish = new Integrations\Varnish(
                                 null,
                                 $purgeSet->PurgeAllMethod,
                                 $this->varnishProxyCacheHeaders
                             );
-                            $varnish->purgeCache($purgeSet->PurgeAllUrl);
+                            $varnish->purge($purgeSet->PurgeAllUrl);
                         }
                     }
                 }

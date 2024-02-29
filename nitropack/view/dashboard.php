@@ -188,8 +188,19 @@
               </li>
               <?php if (nitropack_render_woocommerce_cart_cache_option()) { ?>
                 <li class="list-group-item px-0 d-flex justify-content-between align-items-center">
-                  <span><?php esc_html_e( 'Ecommerce Cart Cache', 'nitropack' ); ?> <span class="badge badge-info"><?php echo nitropack_is_cart_cache_available() ? __( 'New', 'nitropack' ) : '<a href="https://' . NITROPACKIO_HOST . '/pricing" target="_blank" rel="noopener noreferrer" class="text-white">'.__( 'Requires a paid subscription', 'nitropack' ).'</a>'; ?></span></br>
-                      <small><?php esc_html_e( 'Your visitors will enjoy full site speed while browsing with items in cart. Fully optimized page cache will be served.', 'nitropack' ); ?></small>
+                  <span id="woo-stock-reduce"><?php esc_html_e( 'Real-time Stock Refresh', 'nitropack' ); ?></br>
+                    <small><?php esc_html_e( 'Keep accurate product availability on your WooCommerce site. Turn on this feature if you display stock quantities, and enjoy automatic cache clearance when stock decreases.', 'nitropack' ); ?> </small></span>
+                  <span>
+                    <label class="switch">
+                      <input type="checkbox" id="woo-stock-reduce-status" <?php echo (int)$stockReduceStatus === 1 ? "checked" : ""; ?>>
+                      <span class="slider"></span>
+                    </label>
+                  </span>
+                </li>
+      
+                <li class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                  <span><?php esc_html_e( 'Cart Cache', 'nitropack' ); ?> <span class="badge badge-info"><?php echo nitropack_is_cart_cache_available() ? __( 'New', 'nitropack' ) : '<a href="https://' . NITROPACKIO_HOST . '/pricing" target="_blank" rel="noopener noreferrer" class="text-white">'.__( 'Requires a paid subscription', 'nitropack' ).'</a>'; ?></span></br>
+                      <small><?php esc_html_e( 'Serves fully optimized pages to visitors with added cart items, ensuring a swift and seamless shopping experience.', 'nitropack' ); ?></small>
                   </span>
                   <span id="cart-cache-toggle">
                     <label class="switch" id="cart-cache-status-slider">
@@ -199,6 +210,7 @@
                   </span>
                 </li>
               <?php } ?>
+
               <li class="list-group-item px-0 d-flex justify-content-between align-items-center">
                 <span>
                   <a href="javascript:void(0);" class="btn btn-danger text-white" id="disconnect-btn"><i class="fa fa-power-off text-white"></i>&nbsp;&nbsp;<?php esc_html_e( 'Disconnect', 'nitropack' ); ?></a>
@@ -712,6 +724,18 @@
         }
       }, function(response) {
         Notification.success("<?php esc_html_e( 'Compression settings saved', 'nitropack' ); ?>");
+      });
+    });
+
+    $("#woo-stock-reduce-status").on("click", function(e) {
+      $.post(ajaxurl, {
+        action: 'nitropack_set_stock_reduce_status',
+        nonce: nitroNonce,
+        data: {
+          stockReduceStatus: $(this).is(":checked") ? 1 : 0
+        }
+      }, function(response) {
+        Notification.success("<?php esc_html_e( 'WooCommerce stock reduce settings saved', 'nitropack' ); ?>");
       });
     });
 
