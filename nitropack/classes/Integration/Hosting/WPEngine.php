@@ -17,7 +17,14 @@ class WPEngine extends Hosting {
         if (self::detect()) {
             switch ($stage) {
             case "very_early":
+                if (getenv( 'HTTP_GEOIP_COUNTRY_CODE' )) {
+                    add_action('np_set_cookie_filter', function() {
+                        \NitroPack\SDK\NitroPack::addCookieFilter([$this, 'addGeotCookies']);
+                    });
+                }
+
                 define("NITROPACK_USE_MICROTIMEOUT", 20000);
+
                 if (isset($_COOKIE["wpengine_no_cache"]) || isset($_SERVER["HTTP_AUTOUPDATER"])) {
                     add_filter("nitropack_passes_cookie_requirements", function() {
                         nitropack_header("X-Nitro-Disabled-Reason: WP Engine SPM bypass");
@@ -67,5 +74,17 @@ class WPEngine extends Hosting {
         } catch (\Exception $e) {
             // WPE exception
         }
+    }
+
+    public function addGeotCookies(&$cookies) {
+        $cookies['nitro_geot_country_code']  = getenv( 'HTTP_GEOIP_COUNTRY_CODE' );
+        $cookies['nitro_geot_country_code3'] = getenv( 'HTTP_GEOIP_COUNTRY_CODE3' );
+        $cookies['nitro_geot_country_name']  = getenv( 'HTTP_GEOIP_COUNTRY_NAME' );
+        $cookies['nitro_geot_latitude']      = getenv( 'HTTP_GEOIP_LATITUDE' );
+        $cookies['nitro_geot_longitude']     = getenv( 'HTTP_GEOIP_LONGITUDE' );
+        $cookies['nitro_geot_area_code']     = getenv( 'HTTP_GEOIP_AREA_CODE' );
+        $cookies['nitro_geot_region']        = getenv( 'HTTP_GEOIP_REGION' );
+        $cookies['nitro_geot_city']          = getenv( 'HTTP_GEOIP_CITY' );
+        $cookies['nitro_geot_postal_code']   = getenv( 'HTTP_GEOIP_POSTAL_CODE' );
     }
 }

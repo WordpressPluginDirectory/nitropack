@@ -2,9 +2,9 @@
 Contributors: nitropack
 Tags: speed, cache, performance, optimize pagespeed, lazy load, cdn, cache, critical css
 Requires at least: 4.7
-Tested up to: 6.5
+Tested up to: 6.5.2
 Requires PHP: 5.6
-Stable tag: 1.12.0
+Stable tag: 1.14.0
 License: GNU General Public License, version 2
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -279,6 +279,15 @@ Yes, the plugin uses the [Intercom Chat Widget](https://widget.intercom.io), whi
 
 == Changelog ==
 
+
+= 1.14.0 =
+* New Feature: Add compatibility with the GeoTargeting functionality by WP Engine
+* New Feature: Ability to purge NGINX FastCGI cache
+* Improvement: The plugin no longer gets disconnected if wp-content/cache/ is truncated
+* Improvement: Overall stability improvements
+
+= 1.13.0 =
+* New Feature: Add compatibility with the cache layer on SpinupWP
 
 = 1.12.0 =
 * New Feature: New option to refresh cache anytime a product's quantity changes

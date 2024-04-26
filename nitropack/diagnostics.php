@@ -96,6 +96,7 @@ function npdiag_get_general_info() {
         'Nitro_Absolute_Path' => defined('ABSPATH') ? ABSPATH : __( 'Undefined', 'nitropack' ),
         'Nitro_Plugin_Directory' => defined('NITROPACK_PLUGIN_DIR') ? NITROPACK_PLUGIN_DIR : dirname(__FILE__),
         'Nitro_Data_Directory' => defined('NITROPACK_DATA_DIR') ? NITROPACK_DATA_DIR : __( 'Undefined', 'nitropack' ),
+        'Nitro_Plugin_Data_Directory' => defined('NITROPACK_PLUGIN_DATA_DIR') ? NITROPACK_PLUGIN_DATA_DIR : __( 'Undefined', 'nitropack' ),
         'Nitro_Config_File' => defined('NITROPACK_CONFIG_FILE') ? NITROPACK_CONFIG_FILE : __( 'Undefined', 'nitropack' ),
         'Nitro_Backlog_File_Status' => $nitro ? npdiag_backlog_status($nitro) : __( 'Error: Cannot get an SDK instance', 'nitropack' ),
         'Nitro_Webhooks' => $nitro ? npdiag_compare_webhooks($nitro) : __( 'Error: Cannot get an SDK instance', 'nitropack' ),
@@ -154,7 +155,8 @@ function npdiag_get_dir_info() {
         'WP_Content_Dir_Writable' => defined('WP_CONTENT_DIR') ? WP_CONTENT_DIR : (defined('ABSPATH') ? ABSPATH . '/wp-content' : __( 'Undefined', 'nitropack' )),
         'Nitro_Data_Dir_Writable' => defined('NITROPACK_DATA_DIR') ? NITROPACK_DATA_DIR : npdiag_helper_trailingslashit(WP_CONTENT_DIR) . 'nitropack',
         'Nitro_siteID_Dir_Writable' => defined('NITROPACK_DATA_DIR') ? NITROPACK_DATA_DIR . "/$siteID" : npdiag_helper_trailingslashit(WP_CONTENT_DIR) . "nitropack/$siteID",				 
-        'Nitro_Plugin_Dir_Writable' => defined('NITROPACK_PLUGIN_DIR') ? NITROPACK_PLUGIN_DIR : dirname(__FILE__)
+        'Nitro_Plugin_Dir_Writable' => defined('NITROPACK_PLUGIN_DIR') ? NITROPACK_PLUGIN_DIR : dirname(__FILE__),
+        'Nitro_Plugin_Data_Dir_Writable' => defined('NITROPACK_PLUGIN_DATA_DIR') ? NITROPACK_PLUGIN_DATA_DIR : npdiag_helper_trailingslashit(WP_CONTENT_DIR) . 'nitropack',
     ); 
 
     $info = array();

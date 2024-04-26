@@ -17,7 +17,7 @@ class Config {
 
         if ($this->exists()) {
             $config = json_decode(file_get_contents(NITROPACK_CONFIG_FILE), true); // TODO: Convert this to use the Filesystem abstraction for better Redis support
-            if (!empty($config['config_path']) && $config['config_path'] != md5(NITROPACK_DATA_DIR)) {
+            if (!empty($config['config_path']) && $config['config_path'] != md5(NITROPACK_PLUGIN_DATA_DIR)) {
                 $config = [];
             }
         }
@@ -28,8 +28,8 @@ class Config {
 
     public function set($config) {
         $np = NitroPack::getInstance();
-        if (!$np->dataDirExists() && !$np->initDataDir()) return false;
-        $config['config_path'] = md5(NITROPACK_DATA_DIR);
+        if (!$np->pluginDataDirExists() && !$np->initPluginDataDir()) return false;
+        $config['config_path'] = md5(NITROPACK_PLUGIN_DATA_DIR);
         $this->config = $config;
         return WP_DEBUG ? file_put_contents(NITROPACK_CONFIG_FILE, json_encode($config, JSON_PRETTY_PRINT)) : @file_put_contents(NITROPACK_CONFIG_FILE, json_encode($config, JSON_PRETTY_PRINT)); // TODO: Convert this to use the Filesystem abstraction for better Redis support
     }
@@ -37,7 +37,7 @@ class Config {
     // Used when changing the location of the data dir
     public function updateConfigPath() {
 		$config = json_decode(file_get_contents(NITROPACK_CONFIG_FILE), true); // TODO: Convert this to use the Filesystem abstraction for better Redis support
-        $config['config_path'] = md5(NITROPACK_DATA_DIR);
+        $config['config_path'] = md5(NITROPACK_PLUGIN_DATA_DIR);
         return WP_DEBUG ? file_put_contents(NITROPACK_CONFIG_FILE, json_encode($config, JSON_PRETTY_PRINT)) : @file_put_contents(NITROPACK_CONFIG_FILE, json_encode($config, JSON_PRETTY_PRINT)); // TODO: Convert this to use the Filesystem abstraction for better Redis support
     }
 

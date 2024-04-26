@@ -51,10 +51,17 @@ function nitropack_passes_cookie_requirements() {
 
 function nitropack_activate() {
     nitropack_set_wp_cache_const(true);
+
     $htaccessFile = nitropack_trailingslashit(NITROPACK_DATA_DIR) . ".htaccess";
     if (!file_exists($htaccessFile) && get_nitropack()->initDataDir()) {
         file_put_contents($htaccessFile, "deny from all");
     }
+
+    $pluginHtaccessFile = nitropack_trailingslashit(NITROPACK_PLUGIN_DATA_DIR) . ".htaccess";
+    if (!file_exists($pluginHtaccessFile) && get_nitropack()->initPluginDataDir()) {
+        file_put_contents($pluginHtaccessFile, "deny from all"); // TODO: Convert this to use the Filesystem abstraction for better Redis support
+    }
+
     nitropack_install_advanced_cache();
 
     // Htaccess mods need to happen after installing the advanced cache file so the healthcheck can execute fast
@@ -1179,6 +1186,10 @@ function nitropack_is_advanced_cache_allowed() {
 function nitropack_admin_notices() {
     if (defined('NITROPACK_DATA_DIR_WARNING')) {
         nitropack_print_notice('warning', NITROPACK_DATA_DIR_WARNING);
+    }
+
+    if (defined('NITROPACK_PLUGIN_DATA_DIR_WARNING')) {
+        nitropack_print_notice('warning', NITROPACK_PLUGIN_DATA_DIR_WARNING);
     }
 
     if (!empty($_COOKIE["nitropack_after_activate_notice"])) {
@@ -3640,6 +3651,15 @@ function nitropack_plugin_notices() {
 
         if ( !get_nitropack()->dataDirExists() && !get_nitropack()->initDataDir()) {
             $errors[] = __( 'The NitroPack data directory cannot be created. Please make sure that the /wp-content/ directory is writable and refresh this page.', 'nitropack' );
+            return [
+                'error' => $errors,
+                'warning' => $warnings,
+                'info' => $infos
+            ];
+        }
+
+        if ( !get_nitropack()->pluginDataDirExists() && !get_nitropack()->initPluginDataDir()) {
+            $errors[] = __( 'The NitroPack plugin data directory cannot be created. Please make sure that the /wp-content/ directory is writable and refresh this page.', 'nitropack' );
             return [
                 'error' => $errors,
                 'warning' => $warnings,

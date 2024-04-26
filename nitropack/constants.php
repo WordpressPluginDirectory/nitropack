@@ -8,7 +8,7 @@ function nitropack_trailingslashit($string) {
     return rtrim( $string, '/\\' ) . '/';
 }
 
-define( 'NITROPACK_VERSION', '1.12.0' );
+define( 'NITROPACK_VERSION', '1.14.0' );
 define( 'NITROPACK_OPTION_GROUP', 'nitropack' );
 define( 'NITROPACK_SLUG', 'nitropack' );
 define( 'NITROPACK_PLUGIN_DIR', nitropack_trailingslashit(dirname(__FILE__)));
@@ -37,12 +37,13 @@ if (!defined("NITROPACK_REDIS_DB")) define("NITROPACK_REDIS_DB", NULL); // Set t
 if (!defined("NITROPACK_CACHE_DIR_NAME")) define("NITROPACK_CACHE_DIR_NAME", substr(md5(__FILE__), 0, 7) . "-nitropack"); // IMPORTANT: If you are changing the pattern make sure to add it to the $oldNitroDirs array in NitroPack::getDataDir()
 
 define( 'NITROPACK_DATA_DIR', NitroPack\WordPress\NitroPack::getDataDir() );
-define( 'NITROPACK_CONFIG_FILE', nitropack_trailingslashit(NITROPACK_DATA_DIR) . 'config.json' );
+define( 'NITROPACK_PLUGIN_DATA_DIR', NitroPack\WordPress\NitroPack::getPluginDataDir() );
+define( 'NITROPACK_CONFIG_FILE', nitropack_trailingslashit(NITROPACK_PLUGIN_DATA_DIR) . 'config.json' );
 
-if (Filesystem::fileExists(NITROPACK_CONFIG_FILE) && NitroPack\WordPress\NitroPack::$nitroDirMigrated) {
+if (Filesystem::fileExists(NITROPACK_CONFIG_FILE) && (NitroPack\WordPress\NitroPack::$nitroDirMigrated || NitroPack\WordPress\NitroPack::$nitroConfigMigrated)) {
 	// Update the config_path according to the new location of the file.
 	// Otherwise it will be ignored later and the plugin will appear disconnected.
-    (new NitroPack\WordPress\Config())->updateConfigPath();
+	(new NitroPack\WordPress\Config())->updateConfigPath();
 }
 
 add_action( 'plugins_loaded', function() {

@@ -6,6 +6,7 @@ use \NitroPack\SDK\Filesystem;
 class NitroPack {
     private static $instance = NULL;
     public static $nitroDirMigrated = false;
+    public static $nitroConfigMigrated = false;
     public static $preUpdatePosts = array();
     public static $preUpdateTaxonomies = array();
     public static $preUpdateMeta = array();
@@ -76,6 +77,34 @@ class NitroPack {
                         $nitroDir = $existingDir;
                     }
                 }
+            }
+        }
+
+        return $nitroDir;
+    }
+
+    public static function getPluginDataDir() {
+        $isPantheon = \NitroPack\Integration\Hosting\Pantheon::detect();
+        $nitroDir = nitropack_trailingslashit(WP_CONTENT_DIR) . 'config-' . NITROPACK_CACHE_DIR_NAME;
+        if ($isPantheon) {
+            $nitroDir = nitropack_trailingslashit(WP_CONTENT_DIR) . 'uploads/config-' . NITROPACK_CACHE_DIR_NAME;
+        }
+
+        $oldConfigFile = nitropack_trailingslashit(NITROPACK_DATA_DIR) . 'config.json';
+        $newConfigFile = nitropack_trailingslashit($nitroDir) . 'config.json';
+        if (Filesystem::fileExists($oldConfigFile) && !Filesystem::fileExists($newConfigFile)) {
+            // Existing installation, move config to the new location
+
+            if (Filesystem::createDir($nitroDir) && Filesystem::rename($oldConfigFile, $newConfigFile)) {
+                self::$nitroConfigMigrated = true;
+                $oldHtaccessFile = nitropack_trailingslashit(NITROPACK_DATA_DIR) . '.htaccess';
+                $newHtaccessFile = nitropack_trailingslashit($nitroDir) . '.htaccess';
+                if (Filesystem::fileExists($oldHtaccessFile) && !Filesystem::fileExists($newHtaccessFile)) {
+                    Filesystem::filePutContents($newHtaccessFile, Filesystem::fileGetContents($oldHtaccessFile));
+                }
+            } else {
+                define('NITROPACK_PLUGIN_DATA_DIR_WARNING', 'Unable to initialize plugin data dir because the PHP user does not have permission to create/rename directories under wp-content/. Running in legacy mode. Please contact support for help.');
+                $nitroDir = NITROPACK_DATA_DIR;
             }
         }
 
@@ -359,6 +388,14 @@ class NitroPack {
 
     public function initDataDir() {
         return $this->dataDirExists() || @mkdir(NITROPACK_DATA_DIR, 0755, true); // TODO: Convert this to use the Filesystem abstraction for better Redis support
+    }
+
+    public function pluginDataDirExists() {
+        return defined("NITROPACK_PLUGIN_DATA_DIR") && is_dir(NITROPACK_PLUGIN_DATA_DIR); // TODO: Convert this to use the Filesystem abstraction for better Redis support
+    }
+
+    public function initPluginDataDir() {
+        return $this->pluginDataDirExists() || @mkdir(NITROPACK_PLUGIN_DATA_DIR, 0755, true); // TODO: Convert this to use the Filesystem abstraction for better Redis support
     }
 
     public function setDisabledReason($reason) {
