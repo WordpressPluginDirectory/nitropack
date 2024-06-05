@@ -7,7 +7,7 @@
             "source": {
                 "type": "git",
                 "url": "git@bitbucket.org:nitropack/httpclient.git",
-                "reference": "ac9203e4d45de89f2b499460eb323185262edf39"
+                "reference": "f914664ebe9df68343b36c63b91e41edeff1616f"
             },
             "require": {
                 "nitropack/url": "dev-master"
@@ -17,7 +17,7 @@
                 "react/http": "^1.8",
                 "react/socket": "^1.12"
             },
-            "time": "2024-01-09T12:04:05+00:00",
+            "time": "2024-06-02T13:26:42+00:00",
             "default-branch": true,
             "type": "library",
             "installation-source": "source",

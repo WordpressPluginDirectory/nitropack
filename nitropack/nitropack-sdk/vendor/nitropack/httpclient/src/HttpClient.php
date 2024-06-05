@@ -1014,6 +1014,7 @@ class HttpClient {
                             !empty($this->last_error["errstr"])
                             && strpos($this->last_error["errstr"], "error:14094438:SSL routines:ssl3_read_bytes:tlsv1 alert internal error") === false
                             && strpos($this->last_error["errstr"], "SSL: Success") === false
+                            && strpos($this->last_error["errstr"], "SSL/TLS already set-up for this stream") === false
                         ) {
                             // These errors don't need to be logged because we cannot fix them
                             // It is an issue on the other end that SSL is not enabled

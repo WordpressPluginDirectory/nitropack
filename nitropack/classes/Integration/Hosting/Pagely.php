@@ -16,10 +16,10 @@ class Pagely extends Hosting {
                 add_action('nitropack_cacheable_cache_headers', [$this, 'addCacheControl']);
                 add_action('nitropack_cachehit_cache_headers', [$this, 'addCacheControl']);
                 add_filter('nitropack_can_serve_cache', [$this, 'canServeCache']);
-                \NitroPack\Integration::initSemAcquire();
+                \NitroPack\ModuleHandler::initSemAcquire();
                 return true;
             case "early":
-                \NitroPack\Integration::initSemRelease();
+                \NitroPack\ModuleHandler::initSemRelease();
                 add_action('nitropack_execute_purge_url', [$this, 'purgeUrl']);
                 add_action('nitropack_execute_purge_all', [$this, 'purgeAll']);
                 return true;

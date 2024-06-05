@@ -35,12 +35,12 @@ class Cloudflare {
                 add_action('nitropack_early_cache_headers', [$this, 'preventApoCache'], PHP_INT_MAX);
                 add_action( 'nitropack_cacheable_cache_headers', [$this, 'allowApoCache'], PHP_INT_MAX );
                 add_action( 'nitropack_cachehit_cache_headers', [$this, 'allowApoCache'], PHP_INT_MAX );
-                \NitroPack\Integration::initSemAcquire();
+                \NitroPack\ModuleHandler::initSemAcquire();
             }
             return true;
         case "late":
             if ($this->siteConfig && !empty($this->siteConfig["isApoActive"])) {
-                \NitroPack\Integration::initSemRelease();
+                \NitroPack\ModuleHandler::initSemRelease();
                 add_action('nitropack_execute_purge_url', [$this, 'purgeUrl']);
                 add_action('nitropack_execute_purge_all', [$this, 'purgeAll']);
             }

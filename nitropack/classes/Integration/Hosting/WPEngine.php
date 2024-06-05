@@ -31,10 +31,10 @@ class WPEngine extends Hosting {
                         return false;
                     });
                 }
-                \NitroPack\Integration::initSemAcquire();
+                \NitroPack\ModuleHandler::initSemAcquire();
                 return true;
             case "early":
-                \NitroPack\Integration::initSemRelease();
+                \NitroPack\ModuleHandler::initSemRelease();
                 add_action('nitropack_execute_purge_url', [$this, 'purgeUrl']);
                 add_action('nitropack_execute_purge_all', [$this, 'purgeAll']);
                 break;

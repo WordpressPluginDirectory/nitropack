@@ -15,7 +15,7 @@ class NginxHelper {
         case "very_early":
             $this->siteConfig = get_nitropack()->getSiteConfig();
             if ($this->siteConfig && !empty($this->siteConfig["isNginxHelperActive"])) {
-                \NitroPack\Integration::initSemAcquire();
+                \NitroPack\ModuleHandler::initSemAcquire();
             }
             return true;
         case "late":
@@ -23,7 +23,7 @@ class NginxHelper {
             if ($this->siteConfig && !empty($this->siteConfig["isNginxHelperActive"])) {
                 add_action('nitropack_execute_purge_url', [$this, 'purgeUrl']);
                 add_action('nitropack_execute_purge_all', [$this, 'purgeAll']);
-                \NitroPack\Integration::initSemRelease();
+                \NitroPack\ModuleHandler::initSemRelease();
             }
             break;
         }

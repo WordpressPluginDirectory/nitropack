@@ -1,139 +1,166 @@
-<div id="nitropack-container" class="wrap" style="visibility: hidden">
-    <div class="row">
-        <div class="col-md-12">
-            <div id="login-container">
-                <h3><?php esc_html_e( 'Welcome to NitroPack for WordPress!', 'nitropack' ); ?></h3>
-                <p><?php esc_html_e( 'This page will help you to connect your WordPress site with NitroPack in few steps.', 'nitropack' ); ?></p>
-                <img src="<?= plugin_dir_url(__FILE__) ?>/images/nitropackwp.jpg" alt="NitroPack"/>
-                <hr />
-                <h3><?php esc_html_e( 'Let\'s Get Started!', 'nitropack' ); ?></h3>
-                <p><?php esc_html_e( 'In order to connect NitroPack with WordPress you need to configure your API details. More information how to obtain these values can be found', 'nitropack' ); ?> <a href="https://nitropack.io/blog/post/how-to-get-your-site-id-and-site-secret" target="_blank">here <i class="fa fa-external-link"></i></a></p>
-                <form class="form-default" action="options.php" method="post" id="api-details-form">
-                    <?php settings_fields( NITROPACK_OPTION_GROUP );
-                    do_settings_sections( NITROPACK_OPTION_GROUP ); ?>
-                    <div id="submitdiv" class="postbox ">
-                        <h3><?php esc_html_e( 'Welcome!', 'nitropack' ); ?></h3>
-                        <div id="manual-connect-fields" style="display:none;">
-                          <h2><?php esc_html_e( 'Enter API Key and API Secret Key to start using NitroPack', 'nitropack' ); ?></h2>
-                          <input id="nitropack-siteid-input" name="nitropack-siteId" type="text" class="form-control" placeholder="<?php esc_html_e( 'API Key ', 'nitropack' ); ?>">
-                          <input id="nitropack-sitesecret-input" name="nitropack-siteSecret" type="text" class="form-control" placeholder="<?php esc_html_e( 'API Secret Key', 'nitropack' ); ?>">
+<div id="nitropack-connect">
+    <header class="header">
+        <nav>
+            <ol>
+                <li class="step passed"><?php esc_html_e('Plugin activation', 'nitropack'); ?></li>
+                <li class="step current"><?php esc_html_e('Connect to NitroPack account', 'nitropack'); ?></li>
+            </ol>
+        </nav>
+    </header>
+    <main id="main">
+        <div class="logos">
+            <img src="<?php echo plugin_dir_url(__FILE__) . 'images/nitropack_logo.svg'; ?>" class="" width="116" height="44" alt="NitroPack" />
+            <img src="<?php echo plugin_dir_url(__FILE__) . 'images/plus.svg'; ?>" class="" width="32" height="32" alt="+" />
+            <img src="<?php echo plugin_dir_url(__FILE__) . 'images/wp_logo.svg'; ?>" class="" width="52" height="52" alt="WordPress" />
+        </div>
+        <div class="connect">
+            <div class="headline-container">
+                <h1><?php esc_html_e('Welcome to NitroPack for WordPress', 'nitropack'); ?></h1>
+                <p><?php esc_html_e('Let\'s boost your website\'s page load speed and improve your Core Web Vitals.', 'nitropack'); ?></p>
+            </div>
+            <div class="cta-container">
+                <form class="w-full" action="options.php" method="post" id="api-details-form">
+                    <?php settings_fields(NITROPACK_OPTION_GROUP);
+                    do_settings_sections(NITROPACK_OPTION_GROUP); ?>
+                    <div id="manual-connect-fields" style="display: none">
+                        <div class="form-row">
+                            <label><span><?php esc_html_e('API Key', 'nitropack'); ?></span>
+                                <div class="tooltip"><span class="tooltip-icon" data-tooltip-target="tooltip-api-key">
+                                        <img src="<?php echo plugin_dir_url(__FILE__) . 'images/info.svg'; ?>">
+                                    </span>
+                                    <div id="tooltip-api-key" role="tooltip" class="tooltip-container hidden">
+                                        <?php esc_html_e('API Key is a unique alphanumeric identifier assigned to each website using NitroPack.', 'nitropack');
+                                        ?>
+                                        <div class="tooltip-arrow" data-popper-arrow></div>
+                                    </div>
+                                </div>
+                                <input id="nitropack-siteid-input" name="nitropack-siteId" type="text" class="form-control" placeholder="<?php esc_html_e('API Key ', 'nitropack'); ?>">
+                            </label>
                         </div>
-                        <div class="e-submit">
-                            <a class="btn btn-primary white" id="api-details-form-submit" href="javascript:void(0);">
-                                <i id="connect-spinner" class="fa fa-spinner fa-spin white" style="display:none;"></i>
-                                <span id="connect-text"><?php esc_html_e( 'Connect to NitroPack', 'nitropack' ); ?></span>
-                            </a>
-                            <h1 id="connect-success" style="display:none;margin-bottom:auto;font-size:36px;"><i class="fa fa-check-circle"></i></h1>
+                        <div class="form-row">
+                            <label><span><?php esc_html_e('API Secret Key', 'nitropack'); ?></span>
+                                <div class="tooltip"><span class="tooltip-icon" data-tooltip-target="tooltip-secret-key">
+                                        <img src="<?php echo plugin_dir_url(__FILE__) . 'images/info.svg'; ?>">
+                                    </span>
+                                    <div id="tooltip-secret-key" role="tooltip" class="tooltip-container hidden">
+                                        <?php esc_html_e('Site secret is a confidential alphanumeric key associated with your website, designed to ensure secure communication between NitroPack and your site.', 'nitropack');
+                                        ?>
+                                        <div class="tooltip-arrow" data-popper-arrow></div>
+                                    </div>
+                                </div>
+                                <input id="nitropack-sitesecret-input" name="nitropack-siteSecret" type="text" class="form-control" placeholder="<?php esc_html_e('API Secret Key', 'nitropack'); ?>">
+                                <p class="text-smaller"><?php esc_html_e('Learn where to find your site\'s API details', 'nitropack'); ?> <a href="https://nitropack.io/blog/post/how-to-get-your-api-keys" target="_blank"><?php esc_html_e('here', 'nitropack'); ?></a></a>
+                            </label>
                         </div>
-                        <div class="clearfix"></div>
-                        <a id="switch-connect-type" data-state="manual"><small><?php esc_html_e( 'Connect manually', 'nitropack' ); ?></small></a>
                     </div>
+
+                    <a href="#" class="btn btn-primary btn-xl w-100" id="connect-nitropack">
+                        <img src="<?php echo plugin_dir_url(__FILE__) . 'images/loading.svg'; ?>" alt="loading" class="icon-left hidden">
+                        <?php esc_html_e('Connect', 'nitropack'); ?>
+                    </a>
                 </form>
-                <p><?php esc_html_e( 'Having trouble connecting? Head over to', 'nitropack' ); ?> <a href="<?php echo NITROPACK_SUPPORT_BUBBLE_URL; ?>" target="_blank" rel="noreferrer noopener"><?php echo NITROPACK_SUPPORT_BUBBLE_URL; ?></a>.</p>
+                <div class="help main"><?php _e('Having trouble connecting? Explore our <a href="#" class="btn-manual-connect">manual connect</a> option, browse our <a href="https://support.nitropack.io/en/collections/6175768-nitropack-for-wordpress-and-woocommerce" target="_blank">FAQ section</a>, or reach out to our <a href="https://support.nitropack.io/en/" target="_blank">support team</a>.', 'nitropack'); ?></div>
+                <div class="help manual" style="display: none"><?php esc_html_e('or', 'nitropack'); ?> <a href="#" class="btn-automatic-connect"><?php esc_html_e('connect automatically', 'nitropack'); ?></a></div>
+
             </div>
         </div>
-    </div>
+        <div class="success-container hidden">
+            <span class="bg-purple-100 btn-icon rounded-full mb-4" style="height: 36px;"><svg width="13" height="9" viewBox="0 0 13 9" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M11.8334 1L4.50008 8.33333L1.16675 5" stroke="#1B004E" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+            </span>
+            <h1><?php esc_html_e('All set!', 'nitropack'); ?></h1>
+            <p><?php esc_html_e('Your setup is complete – you\'re all set to experience a seamless journey ahead.', 'nitropack'); ?></p>
+        </div>
+    </main>
 </div>
-
 <script>
-(function($) {
+    (function($) {
 
-    let connectPopup = null;
-    let homePageUrl = "<?php echo get_home_url(); ?>";
-    let nitroNonce = '<?php echo wp_create_nonce(NITROPACK_NONCE); ?>';
+        let connectPopup = null;
+        const homePageUrl = "<?php echo get_home_url(); ?>";
+        const nitroNonce = '<?php echo wp_create_nonce(NITROPACK_NONCE); ?>';
 
-    window.addEventListener("message", function(e) {
-      if (e.data.messageType == "nitropack-connect") {
-        $("#nitropack-siteid-input").val(e.data.api.key);
-        $("#nitropack-sitesecret-input").val(e.data.api.secret);
-        $("#api-details-form-submit").click();
-        connectPopup.close();
-        connectPopup = null;
-      }
-    });
+        $(document).ready(function() {
+            function automaticConnect() {
+                if (!connectPopup || !connectPopup.window) {
+                    let screenWidth = window.screen.availWidth;
+                    let screenHeight = window.screen.availHeight;
+                    let windowWidth = 800;
+                    let windowHeight = 700;
+                    let leftPos = window.top.outerWidth / 2 + window.top.screenX - (windowWidth / 2);
+                    let topPos = window.top.outerHeight / 2 + window.top.screenY - (windowHeight / 2);
 
-    $("#api-details-form-submit").on("click", function(e) {
-
-      let siteId = $("#nitropack-siteid-input").val();
-      let siteSecret = $("#nitropack-sitesecret-input").val();
-      let isManualConnect = $("#manual-connect-fields").is(":visible");
-
-      if (isManualConnect || (siteId && siteSecret)) {
-        e.preventDefault();
-        $("#connect-spinner").show();
-        $("#connect-text").hide();
-        jQuery.post(ajaxurl, {
-            action: 'nitropack_verify_connect',
-            siteId: siteId,
-            siteSecret: siteSecret,
-            nonce: nitroNonce
-        }, function(response) {
-            $("#connect-spinner").hide();
-
-            var resp = JSON.parse(response);
-            if (resp.status == "success") {
-                location.reload();
-                $("#connect-success").show();
-                $("#api-details-form-submit").hide();
-                //$("#api-details-form").ajaxSubmit({
-                //    complete: function() {
-                //        location.reload();
-                //    }
-                //});
-                return;
-            } else {
-              if (!isManualConnect) {
-                $("#nitropack-siteid-input").val("");
-                $("#nitropack-sitesecret-input").val("");
-              }
-
-                jQuery("#submitdiv .notice").remove();
-
-                if (resp.message) {
-                    jQuery('#submitdiv').prepend('<div class="notice notice-error is-dismissible"><p style="word-break: break-word;">' + resp.message + '</p></div>');
-                } else {
-                    jQuery('#submitdiv').prepend('<div class="notice notice-error is-dismissible"><p style="word-break: break-word;"><?php esc_html_e( "Api details verification failed! Please check whether you entered correct details.", "nitropack" ); ?></p></div>');
+                    connectPopup = window.open("https://<?php echo NITROPACKIO_HOST; ?>/auth?website=" + homePageUrl, "QuickConnect", "width=" + windowWidth + ",height=" + windowHeight + ",left=" + leftPos + ",top=" + topPos);
+                } else if (connectPopup && connectPopup.window) {
+                    connectPopup.focus();
                 }
-
-                jQuery(".notice").addClass("shake"); //Adds Shake animation to the error notice box to catch user attention.
-                loadDismissibleNotices();
             }
-            $("#connect-text").show();
+            $('.btn-manual-connect').click(function(e) {
+                $('#manual-connect-fields, .help').toggle();
+            });
+            $('.btn-automatic-connect').click(function() {
+                automaticConnect();
+            });
+            $("#connect-nitropack").on("click", function(e) {
+                e.preventDefault();
+                let siteId = $("#nitropack-siteid-input").val();
+                let siteSecret = $("#nitropack-sitesecret-input").val();
+                let loading_icon = $(this).find('.icon-left');
+                let isManualConnect = $("#manual-connect-fields").is(":visible");
+
+                loading_icon.removeClass('hidden');
+
+                if (isManualConnect || (siteId && siteSecret)) {
+                    $.post(ajaxurl, {
+                            action: 'nitropack_verify_connect',
+                            siteId: siteId,
+                            siteSecret: siteSecret,
+                            nonce: nitroNonce
+                        })
+                        .done(function(response) {
+                            let resp = JSON.parse(response);
+                            if (resp.status == "success") {
+                                $(".success-container").removeClass('hidden');
+                                $(".header, .connect").addClass('hidden');
+                                location.reload();
+                            } else {
+                                $("#nitropack-siteid-input, #nitropack-sitesecret-input").val("");
+                                $("#main .notification").remove();
+                                let errorMessage = resp.message ? resp.message : "<?php esc_html_e('Api details verification failed! Please check whether you entered correct details.', 'nitropack'); ?>";
+
+                                if ($('#manual-connect-fields .nitro-notification').length) {
+                                    $('#manual-connect-fields .nitro-notification .notification-inner p').text(errorMessage);
+                                } else {
+                                    $('#manual-connect-fields').prepend('<div class="nitro-notification notification-danger max-w-sm mb-8 ml-auto mr-auto"><div class="text-box text-center w-full"><div class="notification-inner"><p>' + errorMessage + '</p></div></div></div>');
+                                }                              
+                            }
+                        })
+                        .fail(function() {
+                            console.error("An error occurred during the AJAX request.");
+                        })
+                        .always(function() {
+                            loading_icon.addClass('hidden');
+                        });
+                } else if (!isManualConnect) {
+                    automaticConnect();
+
+                }
+                loading_icon.removeClass('hidden');
+            });
         });
-      } else if (!isManualConnect) {
-          if (!connectPopup || !connectPopup.window) {
-              let screenWidth = window.screen.availWidth;
-              let screenHeight = window.screen.availHeight;
-              let windowWidth = 500;
-              let windowHeight = 700;
-              let leftPos = window.top.outerWidth / 2 + window.top.screenX - ( windowWidth / 2);
-              let topPos = window.top.outerHeight / 2 + window.top.screenY - ( windowHeight / 2);
 
-              connectPopup = window.open("https://<?php echo NITROPACKIO_HOST; ?>/auth?website=" + homePageUrl, "QuickConnect", "width=" + windowWidth + ",height=" + windowHeight + ",left=" + leftPos + ",top=" + topPos);
-          } else if (connectPopup && connectPopup.window) {
-              connectPopup.focus();
-          }
-      }
-    });
+        window.addEventListener("message", function(e) {
+            if (e.data.messageType == "nitropack-connect") {
+                $("#nitropack-siteid-input").val(e.data.api.key);
+                $("#nitropack-sitesecret-input").val(e.data.api.secret);
+                $("#connect-nitropack").click();
+                if (connectPopup && !connectPopup.closed) {
+                    connectPopup.close();
+                    connectPopup = null;
+                }
+            }
+        });
 
-    $('#switch-connect-type').on('click', function(){
-        let connectType = $(this).attr('data-state');
-
-        if ( 'auto' === connectType ) {
-            $('#manual-connect-fields').hide();
-            $('#submitdiv .notice').hide();
-            $('#switch-connect-type').html("<small><?php esc_html_e( 'Connect manually', 'nitropack' ); ?></small>");
-            $('#switch-connect-type').attr('data-state', 'manual');
-        }
-
-        if ( 'manual' === connectType ) {
-            $('#manual-connect-fields').show();
-            $('#submitdiv .notice').show();
-            $('#switch-connect-type').html("<small><?php esc_html_e( 'Connect automatically', 'nitropack' ); ?></small>");
-            $('#switch-connect-type').attr('data-state', 'auto');
-        }
-    });
-
-})(jQuery);
+    })(jQuery);
 </script>
-

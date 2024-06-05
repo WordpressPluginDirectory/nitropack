@@ -32,12 +32,12 @@ class WPmudev extends Hosting {
         if (self::detect()) {
             switch ($stage) {
                 case "very_early":
-                    \NitroPack\Integration::initSemAcquire();
+                    \NitroPack\ModuleHandler::initSemAcquire();
                     return true;
                 case "early":
                     add_action('nitropack_execute_purge_url', [$this, 'purgeUrl']);
                     add_action('nitropack_execute_purge_all', [$this, 'purgeAll']);
-                    \NitroPack\Integration::initSemRelease();
+                    \NitroPack\ModuleHandler::initSemRelease();
                     break;
             }
             add_action('nitropack_execute_purge_url', [$this, 'purgeUrl']);

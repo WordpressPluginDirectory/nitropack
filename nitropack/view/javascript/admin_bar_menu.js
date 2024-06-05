@@ -1,4 +1,6 @@
 jQuery(window).on("load", _ => {
+    const loading_icon = '<img src="' + frontendajax.nitro_plugin_url + '/view/images/loading.svg" width="14" class="icon loading"/>';
+
     function clearCacheSingleHandler(clearCacheAction, elem) {
         jQuery.ajax({
             url: frontendajax.ajaxurl,
@@ -11,15 +13,15 @@ jQuery(window).on("load", _ => {
             },
             dataType: 'json',
             beforeSend: function () {
-                elem.find('i').remove();
-                elem.find('a').first().append('<i class="fa fa-refresh fa-spin nitro"></i>');
+                elem.find('a').first().append(loading_icon);
             },
             success: function (data) {
                 if (data.type == 'error') {
-                    elem.find('i').removeClass('fa-refresh').removeClass('fa-spin').addClass('fa-exclamation');
-                    alert(data.message);
+                    elem.find('.icon').attr('src', frontendajax.nitro_plugin_url + 'view/images/x-mark.svg');
+                    elem.find('.icon').addClass('error');
+                    alert(data.message);                   
                 } else {
-                    elem.find('i').removeClass('fa-refresh').removeClass('fa-spin').addClass('fa-check');
+                    elem.find('.icon').attr('src', frontendajax.nitro_plugin_url + 'view/images/check.svg');
                 }
             }
         });
@@ -35,16 +37,23 @@ jQuery(window).on("load", _ => {
             },
             dataType: 'json',
             beforeSend: function () {
-                elem.find('i').remove();
-                elem.find('a').first().append('<i class="fa fa-refresh fa-spin nitro"></i>');
+                if (!elem.find('.icon').length) {
+                    elem.find('a').first().append(loading_icon);
+                } else {
+                    elem.find('.icon').attr('src', frontendajax.nitro_plugin_url + 'view/images/loading.svg')
+                    elem.find('.icon').addClass('loading').removeClass('error success');
+                }
             },
             success: function (data) {
                 if (data.type == 'error') {
-                    elem.find('i').removeClass('fa-refresh').removeClass('fa-spin').addClass('fa-exclamation');
+                    elem.find('.icon').attr('src', frontendajax.nitro_plugin_url + 'view/images/x-mark.svg');
+                    elem.find('.icon').addClass('error');
                     alert(data.message);
                 } else {
-                    elem.find('i').removeClass('fa-refresh').removeClass('fa-spin').addClass('fa-check');
+                    elem.find('.icon').attr('src', frontendajax.nitro_plugin_url + 'view/images/check.svg')
+                    elem.find('.icon').addClass('success');
                 }
+                elem.find('.icon').removeClass('loading');
             }
         });
     }

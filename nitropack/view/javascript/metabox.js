@@ -1,7 +1,8 @@
 (function($) {
   $(document).ready(function() {
     var statusHideTimeout = null;
-
+    const loading_icon = '<img src="' + metaboxdata.nitro_plugin_url + '/view/images/loading.svg" width="14" class="icon loading"/>';
+    
     function clean_single_cache(postId, postUrl, type) {
       postUrl = postUrl || [];
       var action = type == "purge" ? "nitropack_purge_single_cache" : "nitropack_invalidate_single_cache";
@@ -9,7 +10,7 @@
         clearTimeout(statusHideTimeout);
       }
 
-      $("#nitropack-status-msg").html('Working..&nbsp;&nbsp;<i class="fa fa-spinner fa-spin"></i>').show();
+      $("#nitropack-status-msg").html('Working..&nbsp;&nbsp;'+loading_icon).show();
       $.ajax({
         url: ajaxurl,
         type: "POST",
@@ -20,7 +21,7 @@
           nonce: metaboxdata.nitroNonce
         },
         success: function() {
-          $("#nitropack-status-msg").html('<span style="color: green;">Success</span>');
+          $("#nitropack-status-msg").html('<span style="color: green;">Success</span>');          
           statusHideTimeout = setTimeout(function() {
             $("#nitropack-status-msg").fadeOut();
           }, 3000);

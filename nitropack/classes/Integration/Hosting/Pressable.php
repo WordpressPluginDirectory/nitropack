@@ -18,10 +18,10 @@ class Pressable extends Hosting {
                 $this->noCache();
                 add_action('nitropack_cacheable_cache_headers', [$this, 'cacheShort']);
                 add_action('nitropack_cachehit_cache_headers', [$this, 'cacheLong']);
-                \NitroPack\Integration::initSemAcquire();
+                \NitroPack\ModuleHandler::initSemAcquire();
                 return true;
             case "early":
-                \NitroPack\Integration::initSemRelease();
+                \NitroPack\ModuleHandler::initSemRelease();
                 add_action('nitropack_execute_purge_url', [$this, 'purgeUrl']);
                 add_action('nitropack_execute_purge_all', [$this, 'purgeAll']);
                 return;

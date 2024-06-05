@@ -746,65 +746,69 @@ class NitroPack {
     }
 
     public function purgeProxyCache($url = NULL) {
-        if (!empty($this->config->CacheIntegrations)) {
-            if (!empty($this->config->CacheIntegrations->Varnish)) {
-                if (empty($this->config->CacheIntegrations->Varnish->PurgeConfigSet)) {
-                    if ($url) {
-                        $url = $this->normalizeUrl($url);
-                        $varnish = new Integrations\Varnish(
-                            $this->config->CacheIntegrations->Varnish->Servers,
-                            $this->config->CacheIntegrations->Varnish->PurgeSingleMethod,
-                            $this->varnishProxyCacheHeaders
-                        );
-                        $varnish->purge($url);
-                    } else {
-                        $varnish = new Integrations\Varnish(
-                            $this->config->CacheIntegrations->Varnish->Servers,
-                            $this->config->CacheIntegrations->Varnish->PurgeAllMethod,
-                            $this->varnishProxyCacheHeaders
-                        );
-                        $varnish->purge($this->config->CacheIntegrations->Varnish->PurgeAllUrl);
-                    }
+        if (empty($this->config->CacheIntegrations)) {
+            return;
+        }
+
+        if (!empty($this->config->CacheIntegrations->Varnish)) {
+            if (empty($this->config->CacheIntegrations->Varnish->PurgeConfigSet)) {
+                if ($url) {
+                    $url = $this->normalizeUrl($url);
+                    $varnish = new Integrations\Varnish(
+                        $this->config->CacheIntegrations->Varnish->Servers,
+                        $this->config->CacheIntegrations->Varnish->PurgeSingleMethod,
+                        $this->varnishProxyCacheHeaders
+                    );
+                    $varnish->purge($url);
                 } else {
-                    foreach ($this->config->CacheIntegrations->Varnish->PurgeConfigSet as $purgeSet) {
-                        if ($url) {
-                            foreach ($purgeSet->PurgeSingleHeadersTemplates as $headerTemplateTuple) {
-                                $this->varnishProxyCacheHeaders[$headerTemplateTuple->HeaderName] = $this->valueFromTemplate($url, $headerTemplateTuple->HeaderTemplate);
-                            }
-
-                            $varnish = new Integrations\Varnish(
-                                null,
-                                $purgeSet->PurgeSingleMethod,
-                                $this->varnishProxyCacheHeaders
-                            );
-
-                            $purgeUrl = $this->valueFromTemplate($url, $purgeSet->PurgeSingleTemplate);
-                            $varnish->purge($purgeUrl);
-                        } else {
-                            $varnish = new Integrations\Varnish(
-                                null,
-                                $purgeSet->PurgeAllMethod,
-                                $this->varnishProxyCacheHeaders
-                            );
-                            $varnish->purge($purgeSet->PurgeAllUrl);
-                        }
-                    }
+                    $varnish = new Integrations\Varnish(
+                        $this->config->CacheIntegrations->Varnish->Servers,
+                        $this->config->CacheIntegrations->Varnish->PurgeAllMethod,
+                        $this->varnishProxyCacheHeaders
+                    );
+                    $varnish->purge($this->config->CacheIntegrations->Varnish->PurgeAllUrl);
                 }
+
+                return;
             }
 
-            //if (!empty($this->config->CacheIntegrations->LiteSpeed) && php_sapi_name() !== "cli") {
-            //    if ($url) {
-            //        $urlObj = new Url($url);
-            //        $liteSpeedPath = $urlObj->getPath();
-            //        if ($urlObj->getQuery()) {
-            //            $liteSpeedPath .= "?" . $urlObj->getQuery();
-            //        }
-            //        header("X-LiteSpeed-Purge: $liteSpeedPath", false);
-            //    } else {
-            //        header("X-LiteSpeed-Purge: *", false);
-            //    }
-            //}
+            foreach ($this->config->CacheIntegrations->Varnish->PurgeConfigSet as $purgeSet) {
+                if ($url) {
+                    foreach ($purgeSet->PurgeSingleHeadersTemplates as $headerTemplateTuple) {
+                        $this->varnishProxyCacheHeaders[$headerTemplateTuple->HeaderName] = $this->valueFromTemplate($url, $headerTemplateTuple->HeaderTemplate);
+                    }
+
+                    $varnish = new Integrations\Varnish(
+                        null,
+                        $purgeSet->PurgeSingleMethod,
+                        $this->varnishProxyCacheHeaders
+                    );
+
+                    $purgeUrl = $this->valueFromTemplate($url, $purgeSet->PurgeSingleTemplate);
+                    $varnish->purge($purgeUrl, true);
+                } else {
+                    $varnish = new Integrations\Varnish(
+                        null,
+                        $purgeSet->PurgeAllMethod,
+                        $this->varnishProxyCacheHeaders
+                    );
+                    $varnish->purge($purgeSet->PurgeAllUrl, true);
+                }
+            }
         }
+
+        //if (!empty($this->config->CacheIntegrations->LiteSpeed) && php_sapi_name() !== "cli") {
+        //    if ($url) {
+        //        $urlObj = new Url($url);
+        //        $liteSpeedPath = $urlObj->getPath();
+        //        if ($urlObj->getQuery()) {
+        //            $liteSpeedPath .= "?" . $urlObj->getQuery();
+        //        }
+        //        header("X-LiteSpeed-Purge: $liteSpeedPath", false);
+        //    } else {
+        //        header("X-LiteSpeed-Purge: *", false);
+        //    }
+        //}
     }
 
     public function isAllowedUrl($url) {

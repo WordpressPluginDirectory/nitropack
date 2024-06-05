@@ -39,8 +39,8 @@ class Cloudflare {
         if ($siteConfig && !empty($siteConfig["hosting"]) && $siteConfig["hosting"] == "rocketnet") {
 	        nitropack_header( "Cloudflare-CDN-Cache-Control: public, max-age=0, s-maxage=300, stale-while-revalidate=3600" );
         } else if ($siteConfig && !empty($siteConfig["isApoActive"])) {
-	        nitropack_header("Cloudflare-CDN-Cache-Control: public, max-age=0, s-maxage=3600, stale-while-revalidate=3600");
-		} else {
+            nitropack_header("Cloudflare-CDN-Cache-Control: public, max-age=0, s-maxage=3600, stale-while-revalidate=3600");
+        } else {
             nitropack_header("Vary: sec-ch-ua-mobile");
             nitropack_header("Cloudflare-CDN-Cache-Control: public, max-age=0, s-maxage=15, stale-while-revalidate=3600");
         }
