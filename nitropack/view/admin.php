@@ -40,8 +40,8 @@
       <?php endif; ?>
 
 
-      <?php if (isset($_GET['subpage']) && $_GET['subpage'] == 'diagnostics') : ?>
-        <?php require_once NITROPACK_PLUGIN_DIR . "view/diagnostics.php";
+      <?php if (isset($_GET['subpage']) && $_GET['subpage'] == 'system-report') : ?>
+        <?php require_once NITROPACK_PLUGIN_DIR . "view/system-report.php";
         ?>
       <?php endif; ?>
     </div>

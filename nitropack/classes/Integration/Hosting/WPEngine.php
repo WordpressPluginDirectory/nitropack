@@ -10,7 +10,9 @@ class WPEngine extends Hosting {
     private $readyToPurge = false;
 
     public static function detect() {
-        return !!getenv('IS_WPE');
+        return !!getenv('IS_WPE')
+            || !!getenv('WPENGINE_ACCOUNT')
+            || (nitropack_is_wp_cli() && strpos($_SERVER['DOCUMENT_ROOT'], '/nas/content/live/') === 0);
     }
 
     public function init($stage) {

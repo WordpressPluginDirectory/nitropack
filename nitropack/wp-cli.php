@@ -111,7 +111,6 @@ function nitropack_cli_invalidate($args, $assocArgs) {
             "type" => "error",
             "message" => __( 'Error! There was an error and the cache was not invalidated!', 'nitropack' )
         ));
-        nitropack_sdk_invalidate($url, $tag, $reason);
     } else {
         nitropack_invalidate_cache();
     }

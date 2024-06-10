@@ -33,22 +33,24 @@ class NitroPack {
         $isCloudways     = \NitroPack\Integration\Hosting\Cloudways::detect();
         $isRocketNet     = \NitroPack\Integration\Hosting\RocketNet::detect();
         $currentFilePath = __FILE__;
+        $wpContentDir    = WP_CONTENT_DIR;
         
         if ($isWpe) {
             $currentFilePath = preg_replace("@^/sites/@", "/nas/content/live/", $currentFilePath);
+            $wpContentDir = preg_replace("@^/sites/@", "/nas/content/live/", $wpContentDir);
         }
         
         $oldNitroDirs = [
-            nitropack_trailingslashit(WP_CONTENT_DIR) . 'nitropack',
-            nitropack_trailingslashit(WP_CONTENT_DIR) . 'cache/' . substr(md5($currentFilePath), 0, 7) . "-nitropack",
+            nitropack_trailingslashit($wpContentDir) . 'nitropack',
+            nitropack_trailingslashit($wpContentDir) . 'cache/' . substr(md5($currentFilePath), 0, 7) . "-nitropack",
         ];
-        $newNitroDir = nitropack_trailingslashit(WP_CONTENT_DIR) . 'cache/' . NITROPACK_CACHE_DIR_NAME;
+        $newNitroDir = nitropack_trailingslashit($wpContentDir) . 'cache/' . NITROPACK_CACHE_DIR_NAME;
         $nitroDir = $newNitroDir;
 
         if ($isRaidBoxes || $isRocketNet || $isCloudways) {
             $nitroDir = $oldNitroDirs[0];
         } else if ($isPantheon) {
-            $nitroDir = nitropack_trailingslashit(WP_CONTENT_DIR) . 'uploads/' . NITROPACK_CACHE_DIR_NAME;
+            $nitroDir = nitropack_trailingslashit($wpContentDir) . 'uploads/' . NITROPACK_CACHE_DIR_NAME;
         }
 
         $possibleDirs = array_unique(array_merge($oldNitroDirs, [$newNitroDir]));
@@ -85,13 +87,36 @@ class NitroPack {
 
     public static function getPluginDataDir() {
         $isPantheon = \NitroPack\Integration\Hosting\Pantheon::detect();
-        $nitroDir = nitropack_trailingslashit(WP_CONTENT_DIR) . 'config-' . NITROPACK_CACHE_DIR_NAME;
+        $isWpe      = \NitroPack\Integration\Hosting\WPEngine::detect();
+        $nitroDir   = nitropack_trailingslashit(WP_CONTENT_DIR) . 'config-' . NITROPACK_CACHE_DIR_NAME;
+        $expectedNitroDir  = $nitroDir;
+        
+        if ($isWpe) {
+            $nitroDir = preg_replace("@^/sites/@", "/nas/content/live/", $nitroDir);
+            $expectedNitroDir = $nitroDir;
+        }
+
         if ($isPantheon) {
             $nitroDir = nitropack_trailingslashit(WP_CONTENT_DIR) . 'uploads/config-' . NITROPACK_CACHE_DIR_NAME;
+            $expectedNitroDir = $nitroDir;
         }
 
         $oldConfigFile = nitropack_trailingslashit(NITROPACK_DATA_DIR) . 'config.json';
         $newConfigFile = nitropack_trailingslashit($nitroDir) . 'config.json';
+
+        if ($isWpe) {
+            // For WPE it works better if we keep the config file in the cache dir
+            $tmpConfigFile = $newConfigFile;
+            $newConfigFile = $oldConfigFile;
+            $oldConfigFile = $tmpConfigFile;
+
+            if (!Filesystem::fileExists($oldConfigFile) && Filesystem::fileExists(preg_replace("@^/nas/content/live/@", "/sites/", $oldConfigFile))) {
+                $oldConfigFile = preg_replace("@^/nas/content/live/@", "/sites/", $oldConfigFile);
+            }
+
+            $nitroDir = NITROPACK_DATA_DIR;
+        }
+
         if (Filesystem::fileExists($oldConfigFile) && !Filesystem::fileExists($newConfigFile)) {
             // Existing installation, move config to the new location
 
@@ -102,9 +127,13 @@ class NitroPack {
                 if (Filesystem::fileExists($oldHtaccessFile) && !Filesystem::fileExists($newHtaccessFile)) {
                     Filesystem::filePutContents($newHtaccessFile, Filesystem::fileGetContents($oldHtaccessFile));
                 }
+
+                if ($isWpe) {
+                    Filesystem::deleteDir($expectedNitroDir);
+                }
             } else {
                 define('NITROPACK_PLUGIN_DATA_DIR_WARNING', 'Unable to initialize plugin data dir because the PHP user does not have permission to create/rename directories under wp-content/. Running in legacy mode. Please contact support for help.');
-                $nitroDir = NITROPACK_DATA_DIR;
+                $nitroDir = $isWpe ? $expectedNitroDir : NITROPACK_DATA_DIR;
             }
         }
 
