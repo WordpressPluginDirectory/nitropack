@@ -17,7 +17,12 @@ function nitropack_is_logged_in() {
     $loginCookies = array(defined('NITROPACK_LOGGED_IN_COOKIE') ? NITROPACK_LOGGED_IN_COOKIE : (defined('LOGGED_IN_COOKIE') ? LOGGED_IN_COOKIE : ''));
     foreach ($loginCookies as $loginCookie) {
         if (!empty($_COOKIE[$loginCookie])) {
-            return true;
+            $parts = explode('|', urldecode($_COOKIE[$loginCookie]));
+            if (count($parts) < 3) {
+                continue; // Invalid cookie
+            }
+
+            return time() <= (int)$parts[1];
         }
     }
     $cookieStr = implode("|", array_keys($_COOKIE));
@@ -647,7 +652,7 @@ function nitropack_is_ajax() {
  * @return bool
  */
 function nitropack_is_wp_cli() {
-    return defined("WP_CLI") && WP_CLI;
+    return NitroPack\WordPress\NitroPack::isWpCli();
 }
 
 function nitropack_is_wp_cron() {

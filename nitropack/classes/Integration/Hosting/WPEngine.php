@@ -12,7 +12,7 @@ class WPEngine extends Hosting {
     public static function detect() {
         return !!getenv('IS_WPE')
             || !!getenv('WPENGINE_ACCOUNT')
-            || (nitropack_is_wp_cli() && strpos($_SERVER['DOCUMENT_ROOT'], '/nas/content/live/') === 0);
+            || (\NitroPack\WordPress\NitroPack::isWpCli() && strpos($_SERVER['DOCUMENT_ROOT'], '/nas/content/live/') === 0);
     }
 
     public function init($stage) {

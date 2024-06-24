@@ -4,7 +4,7 @@ Tags: speed, cache, performance, optimize pagespeed, lazy load, cdn, cache, crit
 Requires at least: 4.7
 Tested up to: 6.5.2
 Requires PHP: 5.6
-Stable tag: 1.15.2
+Stable tag: 1.15.3
 License: GNU General Public License, version 2
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -278,6 +278,11 @@ Yes, the plugin uses the [Intercom Chat Widget](https://widget.intercom.io), whi
 
 
 == Changelog ==
+
+= 1.15.3 =
+* Improvement: Defining shortcodes for async load can now be done at a later stage
+* Improvement: More accurate detection of logged in users
+* Bug fix: Resolve an issue when uninstalling the plugin
 
 = 1.15.2 =
 * Improvement: Connection persistence improvements when running in WP Engine

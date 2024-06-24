@@ -140,6 +140,10 @@ class NitroPack {
         return $nitroDir;
     }
 
+    public static function isWpCli() {
+        return defined("WP_CLI") && WP_CLI;
+    }
+
     private $sdkObjects;
     private $disabledReason;
     private $pageType;

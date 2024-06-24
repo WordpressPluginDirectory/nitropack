@@ -33,12 +33,10 @@ class AjaxShortcodes {
     SCRIPT;
 
     public function init($stage) {
-        if ($stage != self::STAGE) {
-            return;
-        }
-
         if (!defined("NITROPACK_AJAX_SHORTCODES")) {
-            return;
+            // This init method can be run at any stage. This gives the opportunity to define the constant at a later point
+            // For example in a MU plugin
+            return true;
         }
 
         $this->shortcodes = array_map("trim", explode(",", NITROPACK_AJAX_SHORTCODES));
