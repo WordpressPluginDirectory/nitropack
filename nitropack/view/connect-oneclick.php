@@ -23,7 +23,7 @@
                     <?php settings_fields(NITROPACK_OPTION_GROUP);
                     do_settings_sections(NITROPACK_OPTION_GROUP); ?>
                     <?php if ($oneClickConnectUrl) : ?>
-                    <a href="#" class="btn btn-primary btn-xl w-100" href="<?php esc_attr_e($oneClickConnectUrl); ?>">
+                    <a class="btn btn-primary btn-xl w-100" href="<?php esc_attr_e($oneClickConnectUrl); ?>">
                         <img src="<?php echo plugin_dir_url(__FILE__) . 'images/loading.svg'; ?>" alt="loading" class="icon-left hidden">
                         <?php esc_html_e('Connect to NitroPack OneClick', 'nitropack'); ?>
                     </a>

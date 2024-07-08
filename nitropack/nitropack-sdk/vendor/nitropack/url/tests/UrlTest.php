@@ -80,6 +80,7 @@ class UrlTest extends TestCase
             'https://example.com?%d0%ba%d0%be%d0%ba%d0%be=%d0%b4%d0%b6%d1%8a%d0%bc%d0%b1%d0%be' => 'https://example.com/?%D0%BA%D0%BE%D0%BA%D0%BE=%D0%B4%D0%B6%D1%8A%D0%BC%D0%B1%D0%BE',
             'https://example.com?%d0%ba%d0%be%d0%ba%d0%be=' => 'https://example.com/?%D0%BA%D0%BE%D0%BA%D0%BE=',
             'https://example.com?%d0%ba%d0%be%d0%ba%d0%be' => 'https://example.com/?%D0%BA%D0%BE%D0%BA%D0%BE',
+            'https://example.com/?str=Здравей' => 'https://example.com/?str=%D0%97%D0%B4%D1%80%D0%B0%D0%B2%D0%B5%D0%B9',
         ];
 
         foreach ($testUrlSet as $inputUrl => $expectedResult) {
@@ -102,5 +103,32 @@ class UrlTest extends TestCase
             $testUrl = new Url($inputUrl);
             $this->assertEquals($expectedResult, $testUrl->isValid());
         }
+    }
+
+    public function testReservedCharsInKeyValue()
+    {
+        $url = new Url('https://example.com/?param01=%D0%B8test%3D&param02=hello');
+        $this->assertEquals('https://example.com/?param01=%D0%B8test%3D&param02=hello', $url->getNormalized());
+    }
+
+    public function testPathSpecialChars() {
+        $url = new Url('https://example.com/a/b/images%2Fcontent2%2F0-1541085431275.jpg');
+        $this->assertEquals('https://example.com/a/b/images%2Fcontent2%2F0-1541085431275.jpg', $url->getNormalized());
+    }
+
+    public function testPathNavigationResolve() {
+        $url = new Url('https://example.com/a/b/../c');
+        $this->assertEquals('https://example.com/a/c', $url->getNormalized(true));
+        $this->assertEquals('https://example.com/a/c', $url->getNormalizedNaive(true));
+        $this->assertEquals('https://example.com/a/b/../c', $url->getNormalized(false));
+        $this->assertEquals('https://example.com/a/b/../c', $url->getNormalizedNaive(false));
+    }
+
+    public function testFragmentInclude() {
+        $url = new Url('https://example.com/#footer');
+        $this->assertEquals('https://example.com/#footer', $url->getNormalized(true, true));
+        $this->assertEquals('https://example.com/#footer', $url->getNormalizedNaive(true, true));
+        $this->assertEquals('https://example.com/', $url->getNormalized(true, false));
+        $this->assertEquals('https://example.com/', $url->getNormalizedNaive(true, false));
     }
 }

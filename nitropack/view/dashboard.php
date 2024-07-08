@@ -89,7 +89,7 @@ $max_page_views = '10000';
       </div>
       <div class="card-body">
         <div class="options-container">
-          <div class="nitro-option">
+          <div class="nitro-option" id="purge-cache-widget">
             <div class="nitro-option-main">
               <div class="text-box">
                 <h6><?php esc_html_e('Purge cache', 'nitropack'); ?></h6>
@@ -101,7 +101,7 @@ $max_page_views = '10000';
               </label>
             </div>
           </div>
-          <div class="nitro-option">
+          <div class="nitro-option" id="page-optimization-widget">
             <div class="nitro-option-main">
               <div class="text-box">
                 <h6><?php esc_html_e('Page optimization', 'nitropack'); ?></h6>
@@ -122,7 +122,19 @@ $max_page_views = '10000';
       <div class="card-body">
         <div class="flex items-center justify-between">
           <p><?php esc_html_e('You can further configure how NitroPack\'s optimization behaves through your account', 'nitropack'); ?>.</p>
-          <a href="https://app.nitropack.io/dashboard" target="_blank" class="btn btn-primary ml-2 flex-shrink-0"><?php esc_html_e('Go to app', 'nitropack'); ?></a>
+          <?php
+            function getNitropackDashboardUrl() {
+                $siteId = nitropack_get_current_site_id();
+                $dashboardUrl = 'https://app.nitropack.io/dashboard';
+            
+                if ($siteId !== null) {
+                    $dashboardUrl .= '?update_session_website_id=' . urlencode($siteId);
+                }
+            
+                return $dashboardUrl;
+            }
+          ?>
+          <a href="<?php echo esc_url(getNitropackDashboardUrl()); ?>" target="_blank" class="btn btn-primary ml-2 flex-shrink-0"><?php esc_html_e('Go to app', 'nitropack'); ?></a>
         </div>
       </div>
     </div>
@@ -137,7 +149,7 @@ $max_page_views = '10000';
       <div class="card-body">
         <div class="flex flex-row items-center">
           <div class="plan-name"><?php esc_html_e('Free', 'nitropack'); ?></div>
-          <a type="button" target="_blank" href="https://app.nitropack.io/account/billing" class="btn btn-secondary ml-auto"><?php esc_html_e('Manage subscription', 'nitropack'); ?></a>
+          <a type="button" target="_blank" href="https://app.nitropack.io/account/billing" class="btn btn-secondary ml-auto" id="btn-manage-subscription"><?php esc_html_e('Manage subscription', 'nitropack'); ?></a>
         </div>
         <div class="table-wrapper">
           <table class="w-full">
@@ -174,7 +186,7 @@ $max_page_views = '10000';
       </div>
       <div class="card-body">
         <div class="options-container">
-          <div class="nitro-option" id="settings-widget">
+          <div class="nitro-option" id="cache-warmup-widget">
             <div class="nitro-option-main">
               <div class="text-box" id="warmup-status-slider">
 
@@ -281,7 +293,7 @@ $max_page_views = '10000';
                 </div>
               <?php endif; ?>
             </div>
-            <div class="nitro-option">
+            <div class="nitro-option" id="real-time-stock-refresh-widget">
               <div class="nitro-option-main">
                 <div class="text-box">
                   <h6><?php esc_html_e('Real-time Stock Refresh', 'nitropack'); ?></h6>

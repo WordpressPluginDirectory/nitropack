@@ -1,4 +1,7 @@
 #wp-admin-bar-nitropack-top-menu {
+    li .ab-item {
+        display: flex;
+    }
     .circle {
         height: 0.5rem;
         width: 0.5rem;
@@ -24,7 +27,7 @@
     .nitro-status-error {
         background-color: red;
     }
-
+ 
     .nitro-status-warning {
         background-color: orange;
     }

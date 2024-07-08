@@ -27,6 +27,13 @@
     'class' => 'diagnostic-option',
     'setting' => 'user_conflict'
   ),
+  array(
+    'name' => esc_html__('Include directory status', 'nitropack'),
+    'desc' => '',
+    'id'   => 'dir-info-status',
+    'class' => 'diagnostic-option',
+    'setting' => 'dir_info_status'
+  ),
 );
 ?>
 

@@ -155,59 +155,11 @@ class Url {
     }
 
     public function getNormalized($resolvePathNavigation = true, $includeHash = true) {
-        $path = $this->path;
+        return Normalizer\Regular::getNormalized($this, $resolvePathNavigation, $includeHash); 
+    }
 
-        $url = "";
-        if (strlen($path) > 0 && $path[0] == "/") { // absolute path - use rootUrl
-            $url = $this->rootUrl ? $this->rootUrl : "";
-        } else if ($this->base) { // relative path - use relativePath from the base (if set)
-            $url = $this->base->getRootUrl() ? $this->base->getRootUrl() : "";
-            $path = ($this->base->getRelativePath() ? $this->base->getRelativePath() : "") . "/" . $path;
-        }
-
-        if ($resolvePathNavigation) {
-            $path = $this->resolvePathNavigation($path, $resolvePathNavigation);
-        }
-
-        if (strpos($path,'%') !== false) {
-            // Based on RFC3986 (https://www.ietf.org/rfc/rfc3986.txt):
-            // For consistency, URI producers and normalizers should use uppercase hexadecimal digits for all
-            // percent-encodings.
-            $path = preg_replace_callback('/%[a-fA-F\d]{2}/', function ($matches) {
-                return strtoupper($matches[0]);
-            }, $path);
-        }
-
-        $path_parts = explode('/', $path);
-        $final_parts = array();
-
-        // Be careful when normalizing paths. Special characters should not be converted in the path parts
-        // https://en.wikipedia.org/wiki/Percent-encoding
-        // Example: https://example.com/a/b/images%2Fcontent2%2F0-1541085431275.jpg must not be converted to https://example.com/a/b/images/content2/0-1541085431275.jpg
-        foreach($path_parts as $part) {
-            $subparts = explode("+", $part);
-            foreach ($subparts as &$subpart) {
-                $subpart = implode("%", array_map(array($this, "normalizeQueryStr"), array_map("rawurldecode", explode("%", $subpart))));
-            }
-            $final_parts[] = implode("+", $subparts);
-        }
-        $path = implode('/', $final_parts);
-
-        if ($url) {
-            $url .= "/" . ltrim($path, "/");
-        } else {
-            $url = $path;
-        }
-
-        if ($this->query) {
-            $url .= "?" . $this->normalizeQueryStr($this->query);
-        }
-
-        if ($includeHash && $this->hash) {
-            $url .= "#" . $this->hash;
-        }
-
-        return $url;
+    public function getNormalizedNaive($resolvePathNavigation = true, $includeHash = true) {
+        return Normalizer\Naive::getNormalized($this, $resolvePathNavigation, $includeHash); 
     }
 
     /**
@@ -244,44 +196,5 @@ class Url {
             // Restore the original host
             $this->setHost($originalHost);
         }
-    }
-
-    private function normalizeQueryStr($queryStr) {
-        $queryStr = rawurldecode($queryStr);
-        $newQueryStr = "";
-        $reservedChars = array(":", "/", "?", "#", "[", "]", "@", "!", "$", "&", "'", "(", ")", "*", "+", ",", ";", "=");
-
-        for ($i = 0; $i < strlen($queryStr); $i++) {
-            $char = $queryStr[$i];
-
-            if (preg_match("/[A-Za-z0-9\-._~]/", $char) || in_array($char, $reservedChars)) {
-                $newQueryStr .= $char;
-            } else {
-                $newQueryStr .= rawurlencode($char);
-            }
-        }
-
-        return $newQueryStr;
-    }
-
-    private function resolvePathNavigation($path) {
-        if (strpos($path, '../') !== false) {
-            $path_parts = explode('/', $path);
-            $final_parts = array();
-
-            foreach($path_parts as $part) {
-                if ($part == ".") {
-                    continue;
-                } else if ($part == '..') {
-                    array_pop($final_parts);
-                } else {
-                    $final_parts[] = $part;
-                }
-            }
-
-            $path = implode('/', $final_parts);
-        }
-
-        return $path;
     }
 }

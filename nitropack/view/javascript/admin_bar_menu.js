@@ -13,7 +13,12 @@ jQuery(window).on("load", _ => {
             },
             dataType: 'json',
             beforeSend: function () {
-                elem.find('a').first().append(loading_icon);
+                if (!elem.find('.icon').length) {
+                    elem.find('a').first().append(loading_icon);
+                } else {
+                    elem.find('.icon').attr('src', frontendajax.nitro_plugin_url + 'view/images/loading.svg')
+                    elem.find('.icon').addClass('loading').removeClass('error success');
+                }
             },
             success: function (data) {
                 if (data.type == 'error') {
@@ -23,6 +28,7 @@ jQuery(window).on("load", _ => {
                 } else {
                     elem.find('.icon').attr('src', frontendajax.nitro_plugin_url + 'view/images/check.svg');
                 }
+                elem.find('.icon').removeClass('loading');
             }
         });
     }

@@ -8,7 +8,7 @@ function nitropack_trailingslashit($string) {
     return rtrim( $string, '/\\' ) . '/';
 }
 
-define( 'NITROPACK_VERSION', '1.15.3' );
+define( 'NITROPACK_VERSION', '1.16.2' );
 define( 'NITROPACK_OPTION_GROUP', 'nitropack' );
 define( 'NITROPACK_SLUG', 'nitropack' );
 define( 'NITROPACK_PLUGIN_DIR', nitropack_trailingslashit(dirname(__FILE__)));

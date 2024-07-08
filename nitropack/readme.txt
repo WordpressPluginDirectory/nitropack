@@ -4,7 +4,7 @@ Tags: speed, cache, performance, optimize pagespeed, lazy load, cdn, cache, crit
 Requires at least: 4.7
 Tested up to: 6.5.2
 Requires PHP: 5.6
-Stable tag: 1.15.3
+Stable tag: 1.16.2
 License: GNU General Public License, version 2
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -278,6 +278,19 @@ Yes, the plugin uses the [Intercom Chat Widget](https://widget.intercom.io), whi
 
 
 == Changelog ==
+
+= 1.16.2 =
+* Bug fix: Handle cases with empty post data for AJAX shortcodes
+
+= 1.16.0 =
+* Improvement: More efficient cache tagging
+* Improvement: Purge cache notification automatically closes when cache is purged
+* Improvement: The more settings button now loads the app with the current site preselected
+* Bug fix: Purge cache for blog list pages when a new post is published
+* Bug fix: Fix the connect button in UI for some users
+* Bug fix: Multiple checkmark icons in the admin bar
+* Bug fix: Add missing info for dir status in the diagnostics report
+* Bug fix: Resolve issues on PHP 5.6
 
 = 1.15.3 =
 * Improvement: Defining shortcodes for async load can now be done at a later stage

@@ -20,7 +20,7 @@
                 <div class="scrollbar-default overflow-auto">
                     <ul class="list-items">
                         <?php foreach ($objectTypes as $objectType) { ?>
-                            <li class="list-item">
+                            <li class="list-item" id="type-<?php echo sanitize_title($objectType->label); ?>">
                                 <div class="list-item-body">
                                     <div class="post-type-name"><?php echo $objectType->label; ?></div>
                                     <label class="inline-flex items-center cursor-pointer ml-auto">
@@ -31,8 +31,8 @@
                             <?php if (!empty($objectType->taxonomies)) { ?>
                                 <?php foreach ($objectType->taxonomies as $taxonomyType) { ?>
                                     <ul class="sub-menu">
-                                        <div class="list-item-body">
-                                            <div class="post-tax-name"> <?php echo $taxonomyType->label; ?></div>
+                                        <div class="list-item-body" id="tax-<?php echo sanitize_title($taxonomyType->label); ?>">
+                                            <div class="post-tax-name"><?php echo $taxonomyType->label; ?></div>
                                             <label class="inline-flex items-center cursor-pointer ml-auto">
                                                 <input type="checkbox" class="sr-only peer cacheable-post-type" name="<?php echo $taxonomyType->name; ?>" id="post-type-post-status" <?php if (in_array($taxonomyType->name, $cacheableObjectTypes)) echo 'checked'; ?>>
                                                 <div class="toggle"></div>

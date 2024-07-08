@@ -581,7 +581,7 @@ function nitropack_passes_page_requirements($detectIfNoCachedResult = true) {
 }
 
 function nitropack_is_home() {
-    if ('posts' == get_option( 'show_on_front' )) {
+    if ('posts' == get_option('show_on_front')) {
         return is_front_page() || is_home();
     } else {
         return is_front_page();
@@ -2313,6 +2313,7 @@ function nitropack_handle_first_publish($post_id) {
 
     try {
         nitropack_clean_post_cache($first_publish_post, array('added' => nitropack_get_taxonomies($first_publish_post)), true, sprintf("Invalidate related pages due to publishing %s '%s'", $first_publish_post->nicePostTypeLabel, $first_publish_post->post_title));
+        nitropack_invalidate(NULL, "pageType:blogindex", 'Invalidation of blog page due to changing related post status');
         delete_transient($post_id . '_np_first_publish');
     } catch (\Exception $e) {
         // TODO: Log the error
@@ -2538,12 +2539,27 @@ function nitropack_log_tags() {
         $nitro = $GLOBALS["NitroPack.instance"];
         $layout = nitropack_get_layout();
         try {
+            $config = $nitro->getConfig();
+            $useHeader = !empty($config->TagsViaHeader);
+
             if ($layout == "home") {
-                $nitro->getApi()->tagUrl($nitro->getUrl(), "pageType:home");
+                if ($useHeader) {
+                    nitropack_header("x-nitro-tags:pageType:home");
+                } else {
+                    $nitro->getApi()->tagUrl($nitro->getUrl(), "pageType:home");
+                }
             } else if ($layout == "archive") {
-                $nitro->getApi()->tagUrl($nitro->getUrl(), "pageType:archive");
+                if ($useHeader) {
+                    nitropack_header("x-nitro-tags:pageType:archive");
+                } else {
+                    $nitro->getApi()->tagUrl($nitro->getUrl(), "pageType:archive");
+                }
             } else {
-                $nitro->getApi()->tagUrl($nitro->getUrl(), array_map("nitropack_filter_tag", array_keys($GLOBALS["NitroPack.tags"])));
+                if ($useHeader && count($GLOBALS["NitroPack.tags"]) <= 100) {
+                    nitropack_header("x-nitro-tags:" . implode("|", array_map("nitropack_filter_tag", array_keys($GLOBALS["NitroPack.tags"]))));
+                } else {
+                    $nitro->getApi()->tagUrl($nitro->getUrl(), array_map("nitropack_filter_tag", array_keys($GLOBALS["NitroPack.tags"])));
+                }
             }
         } catch (\Exception $e) {
         }
@@ -3250,6 +3266,16 @@ function nitropack_cache_safemode_status($operation = null) {
 
 function nitropack_get_site_config() {
     return get_nitropack()->getSiteConfig();
+}
+
+function nitropack_get_current_site_id() {
+
+    $site_config = nitropack_get_site_config();
+    
+    if ($site_config && isset($site_config['siteId'])) {
+        return $site_config['siteId'];
+    }
+
 }
 
 function get_nitropack() {

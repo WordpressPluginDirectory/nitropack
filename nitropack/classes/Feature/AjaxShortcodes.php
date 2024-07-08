@@ -30,7 +30,7 @@ class AjaxShortcodes {
             });
         });
     })()
-    SCRIPT;
+SCRIPT;
 
     public function init($stage) {
         if (!defined("NITROPACK_AJAX_SHORTCODES")) {
@@ -71,7 +71,7 @@ class AjaxShortcodes {
     }
 
     public function runShortcodes() {
-        $shortcodes = $_POST["data"];
+        $shortcodes = !empty($_POST["data"]) ? $_POST["data"] : [];
         if (empty($shortcodes)) wp_send_json_error(["message" => "Invalid shortcode input"], 400);
 
         $resp = [];

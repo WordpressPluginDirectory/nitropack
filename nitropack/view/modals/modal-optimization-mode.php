@@ -66,8 +66,8 @@
                 saveSetting(getOptimizationMode(mode));
                 NitropackUI.triggerToast('info', 'Optimization mode changed to <strong class="capitalized">' + mode + '</strong>.');
             }
-            $(modes_btn).removeClass('btn-primary active');
-            $(modes_btn + '[data-mode="' + mode + '"]').addClass('btn-primary active');
+            $(modes_btn).removeClass('btn-primary active').addClass('btn-link');
+            $(modes_btn + '[data-mode="' + mode + '"]').addClass('btn-primary active').removeClass('btn-link');
             $('.active-mode').text(mode);
 
 

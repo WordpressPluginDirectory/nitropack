@@ -185,7 +185,7 @@ class NitroPack {
                 $languagePreferences = $this->parseLanguagePreferences($clientLanguagePreference);
                 $possibilities = [];
                 foreach ($languagePreferences as $pref) {
-                    [$langCode, $langVariant, $weight] = $pref;
+                    list($langCode, $langVariant, $weight) = $pref;
 
                     if ($langCode === "*") {
                         $langTries = [$this->config->LanguageVary->DefaultLanguage];

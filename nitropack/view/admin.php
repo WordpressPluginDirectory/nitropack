@@ -146,7 +146,6 @@
               NitropackUI.triggerToast('success', data.message);
               cacheEvent = new Event("cache." + clearCacheAction + ".success");
             } else {
-
               NitropackUI.triggerToast('error', data.message);
               cacheEvent = new Event("cache." + clearCacheAction + ".error");
             }
@@ -166,6 +165,13 @@
         });
       };
     }
+
+    window.addEventListener("cache.purge.success", function() {
+      setTimeout(function() {
+          document.cookie = "nitropack_apwarning=1; expires=Thu, 01 Jan 1970 00:00:01 GMT; path=<?php echo nitropack_cookiepath(); ?>";
+          window.location.reload()
+        }, 1500)
+    });
 
     $(window).on("load", _ => {
       //Remove styles from jobcareer and jobhunt plugins since they break our layout. They should not be loaded on our options page anyway.
