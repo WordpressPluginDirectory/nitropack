@@ -59,13 +59,14 @@
         }
     }
     &.notification-info .notification-inner {
-        background-color: $blue-100;
+        background-color: $purple-100;
         .btn.btn-secondary {
-            @include btn_color($blue-700);
+            @include btn_color($purple-700);
             &:hover {
-                background-color: $blue-200;
+                background-color: $purple-700;
+                color: #fff;
             }
-        } 
+        }
     }
     .msg {
         .btn {

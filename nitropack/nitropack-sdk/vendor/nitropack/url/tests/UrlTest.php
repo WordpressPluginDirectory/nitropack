@@ -1,5 +1,7 @@
 <?php
 
+namespace Tests;
+
 use NitroPack\Url\Url;
 use PHPUnit\Framework\TestCase;
 

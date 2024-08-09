@@ -34,6 +34,13 @@ class NitroPack {
         $isRocketNet     = \NitroPack\Integration\Hosting\RocketNet::detect();
         $currentFilePath = __FILE__;
         $wpContentDir    = WP_CONTENT_DIR;
+        $pathResolved    = self::resolvePathNavigation($wpContentDir);
+
+        if ($pathResolved != $wpContentDir) {
+            // Handle existing installations which used to have either /./ or /../ in their content dir paths
+            $wpContentDir = $pathResolved;
+            self::$nitroDirMigrated = true;
+        }
         
         if ($isWpe) {
             $currentFilePath = preg_replace("@^/sites/@", "/nas/content/live/", $currentFilePath);
@@ -90,6 +97,13 @@ class NitroPack {
         $isWpe      = \NitroPack\Integration\Hosting\WPEngine::detect();
         $nitroDir   = nitropack_trailingslashit(WP_CONTENT_DIR) . 'config-' . NITROPACK_CACHE_DIR_NAME;
         $expectedNitroDir  = $nitroDir;
+
+        $nitroDir   = self::resolvePathNavigation($nitroDir);
+        if ($nitroDir != $expectedNitroDir) {
+            // Handle existing installations which used to have either /./ or /../ in their config paths
+            $expectedNitroDir = $nitroDir;
+            self::$nitroConfigMigrated = true;
+        }
         
         if ($isWpe) {
             $nitroDir = preg_replace("@^/sites/@", "/nas/content/live/", $nitroDir);
@@ -490,5 +504,26 @@ class NitroPack {
         }
 
         return $currentUrl;
+    }
+
+    private static function resolvePathNavigation($path) {
+        if (strpos($path, './') !== false) {
+            $path_parts = explode('/', $path);
+            $final_parts = array();
+
+            foreach($path_parts as $part) {
+                if ($part == ".") {
+                    continue;
+                } else if ($part == '..') {
+                    array_pop($final_parts);
+                } else {
+                    $final_parts[] = $part;
+                }
+            }
+
+            $path = implode('/', $final_parts);
+        }
+
+        return $path;
     }
 }

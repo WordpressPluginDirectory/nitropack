@@ -2,6 +2,7 @@
 
 namespace NitroPack\HttpClient;
 
+use NitroPack\HttpClient\StreamFilter\BrotliStreamFilter;
 use \NitroPack\Url\Url;
 use \NitroPack\HttpClient\Exceptions\URLInvalidException;
 use \NitroPack\HttpClient\Exceptions\URLUnsupportedProtocolException;
@@ -17,6 +18,28 @@ use \NitroPack\HttpClient\Exceptions\ChunkSizeException;
 use \NitroPack\HttpClient\Exceptions\ProxyConnectException;
 
 class HttpClient {
+    const STREAM_MAX_SIZE = 5242880; // 5Mb
+
+    // Order is important. This is used as order of preference. It goes top to bottom.
+    const STREAM_DECOMPRESSION_FILTERS = [
+        // Gzip is the most common compression method, let's use it by default.
+        'gzip' => [
+            'zlib.*',
+            'zlib.inflate',
+            // Specify window=15+32, so zlib will use header detection to both gzip (with header) and zlib data
+            // See https://www.zlib.net/manual.html#Advanced definition of inflateInit2
+            // "Add 32 to windowBits to enable zlib and gzip decoding with automatic header detection"
+            // Default window size is 15.
+            ['window' => 15 + 32]
+        ],
+        // Brotli offers higher compression ratio than Gzip, so it's the second-best choice.
+        'br' => [
+            BrotliStreamFilter::STREAM_FILTER_NAME,
+            BrotliStreamFilter::STREAM_FILTER_NAME,
+            null
+        ],
+    ];
+
     public static $MAX_FREE_CONNECTIONS = 100;
     public static $REDIRECT_LIMIT = 20;
     public static $MISDIRECT_RETRIES = 3;
@@ -28,10 +51,19 @@ class HttpClient {
     public static $free_connections = array();
     public static $backtraces = array();
 
+    /** @var null|string[] */
+    protected static $supportedContentEncodings = null;
     private static $is_registered_shutdown_function = false;
     private static $create_client_callback = NULL;
+    /** @var null|callable  */
     private static $fetch_start_callback = NULL;
+    /** @var null|callable  */
     private static $fetch_end_callback = NULL;
+
+    /**
+     * Maps hostname to an array of IP addresses. Should resolving failed for a hostname, the value will be the hostname itself.
+     * @var array<string, string|string[]>
+     */
     private static $hosts_cache = array();
     private static $hosts_cache_expire = array();
     private static $scheme_port_map = array(
@@ -151,6 +183,7 @@ class HttpClient {
     public $port;
     public $path;
     public $scheme;
+    /** @var string */
     public $http_method;
     public $URL;
     public $sock;
@@ -161,6 +194,7 @@ class HttpClient {
     public $ssl_verify_peer_name = false;
     public $read_chunk_size = 8192;
     public $max_response_size;
+    /** @var null|string */
     public $buffer = '';
     public $headers = array();
     public $post_data = "";
@@ -168,9 +202,23 @@ class HttpClient {
     public $request_headers = array();
     public $http_version = '1.1';
     public $status_code = -1;
+    /** @var string|null */
     public $body = '';
+
+    /**
+     * Whether to automatically deflate the response body if the server supports it.
+     *
+     * @var bool
+     */
     public $auto_deflate = true;
+
+    /**
+     * Whether to automatically advertise supported encodings via accept-encoding header.
+     *
+     * @var bool
+     */
     public $accept_deflate = true;
+
     public $cookies = array();
     public $doNotDownload = false;
     public $debug = false;
@@ -192,6 +240,9 @@ class HttpClient {
     public $processHandle = "";
     public $cancelled = false;
 
+    /** @var resource[] */
+    protected $streamFilters = [];
+
     private $ttfb_start_time = 0;
 
     private $end_of_chunks = false;
@@ -204,31 +255,21 @@ class HttpClient {
     private $oncomplete_callback = NULL;
     private $redirect_callback = NULL;
     private $data_callback = NULL;
+    /** @var ?resource */
     private $data_drain_file = NUll;
+    /** @var resource */
     private $body_stream = NULL;
-    private $gzip_filter = NULL;
-    private $is_gzipped = false;
     private $data_len;
     private $is_chunked;
     private $emptyRead;
     private $last_error;
 
     private $ignored_data = "";
-    private $gzip_header = "";
-    private $gzip_trailer = "";
-    private $gzip_ftext = false;
-    private $gzip_fhcrc = false;
-    private $gzip_fextra = false;
-    private $gzip_fname = false;
-    private $gzip_fcomment = false;
-    private $gzip_consumed_crc_header = false;
-    private $gzip_consumed_extra_header = false;
-    private $gzip_consumed_name_header = false;
-    private $gzip_consumed_comment_header = false;
 
     private $cookie_jar = "";
 
     private $isAsync;
+    /** @var callable[] */
     private $asyncQueue;
     private $follow_redirects;
     private $request_headers_string;
@@ -236,6 +277,11 @@ class HttpClient {
     private $config;
     private $state;
     private $lastState;
+
+    /**
+     * Maps hostnames to an IP address
+     * @var @var array<string, string>
+     */
     private $hostsOverride;
     private $portsOverride;
 
@@ -244,6 +290,7 @@ class HttpClient {
     private $isReusingConnection;
 
     private $dynamicProperties;
+
     public function __get($prop) {
         return !empty($this->dynamicProperties[$prop]) ? $this->dynamicProperties[$prop] : NULL;
     }
@@ -261,6 +308,11 @@ class HttpClient {
         $this->ssl_timeout = NULL;//in seconds
         $this->timeout = 5;//in seconds
         $this->max_response_size = 1024 * 1024 * 5;
+
+        if (static::$supportedContentEncodings === null) {
+            BrotliStreamFilter::register();
+            static::$supportedContentEncodings = static::determineSupportedContentEncodings();
+        }
 
         $this->config = $httpConfig ? $httpConfig : new HttpConfig();
         $this->cookie_jar = $this->config->getCookieJar();
@@ -456,7 +508,7 @@ class HttpClient {
                 $this->data_drain_file = NULL;
                 return;
             }
-            $this->data_drain_file = fopen($file, "w");
+            $this->data_drain_file = fopen($file, 'wb');
             stream_set_blocking($this->data_drain_file, false);
         } else {
             $this->data_drain_file = NULL;
@@ -553,6 +605,11 @@ class HttpClient {
         }
     }
 
+    /**
+     * @param string $host
+     * @param bool $isRetry
+     * @return false|string
+     */
     public function gethostbyname($host, $isRetry = false) {
         if (!empty($this->hostsOverride[$host])) {
             return $this->hostsOverride[$host];
@@ -641,12 +698,7 @@ class HttpClient {
         $this->state = HttpClientState::INIT;
         $this->follow_redirects = $follow_redirects;
         $this->isAsync = $isAsync;
-        
-        // Disable accept_deflate in case the Litespeed extension is installed - there is a known issue with stream_filter_append
-        if (in_array('litespeed', get_loaded_extensions())) {
-            $this->accept_deflate = false;
-        }
-        
+
         if ($this->data_drain_file) {
             ftruncate($this->data_drain_file, 0);
             fseek($this->data_drain_file, 0, SEEK_SET);
@@ -654,31 +706,19 @@ class HttpClient {
 
         ftruncate($this->body_stream, 0);
         fseek($this->body_stream, 0, SEEK_SET);
-        if ($this->gzip_filter) {
-            stream_filter_remove($this->gzip_filter);
-            $this->gzip_filter = NULL;
+
+        while ($streamFilter = array_pop($this->streamFilters)) {
+            stream_filter_remove($streamFilter);
         }
 
         $this->body = NULL;//because of PHP's memory management
         $this->body = '';
         $this->buffer = '';
         $this->ignored_data = "";
-        $this->gzip_header = "";
-        $this->gzip_trailer = "";
-        $this->gzip_ftext = false;
-        $this->gzip_fhcrc = false;
-        $this->gzip_fextra = false;
-        $this->gzip_fname = false;
-        $this->gzip_fcomment = false;
-        $this->gzip_consumed_crc_header = false;
-        $this->gzip_consumed_extra_header = false;
-        $this->gzip_consumed_name_header = false;
-        $this->gzip_consumed_comment_header = false;
         $this->end_of_chunks = false;
         $this->chunk_remainder = 0;
         $this->data_size = 0;
         $this->data_len = $this->max_response_size;
-        $this->is_gzipped = false;
         $this->is_chunked = false;
         $this->status_code = -1;
         $this->headers = array();
@@ -743,10 +783,13 @@ class HttpClient {
         if (HttpClient::$fetch_start_callback) {
             call_user_func(HttpClient::$fetch_start_callback, $this->URL, true);
         }
+
+        /** @var callable|array $func */
         $func = reset($this->asyncQueue);
         if (call_user_func($func) === true) {
             array_shift($this->asyncQueue);
         }
+
         if (HttpClient::$fetch_end_callback) {
             call_user_func(HttpClient::$fetch_end_callback, $this->URL, true);
         }
@@ -822,6 +865,24 @@ class HttpClient {
         }
     }
 
+    /**
+     * @param array<int, string> $headerLines
+     * @param string $headerName
+     * @return array
+     */
+    private function getHeaderLines($headerLines, $headerName)
+    {
+        $headerNameLength = strlen($headerName);
+        $headerName = strtolower($headerName);
+
+        return array_filter($headerLines, static function ($headerLine) use ($headerName, $headerNameLength) {
+            return 0 === strncmp($headerLine, $headerName, $headerNameLength);
+        });
+    }
+
+    /**
+     * @return false|string
+     */
     public function getBody() {
         rewind($this->body_stream);
         return stream_get_contents($this->body_stream);
@@ -1102,6 +1163,7 @@ class HttpClient {
             $this->last_read = $this->content_download_start;
         }
         $this->logConnectionUsage();
+        $isHeadersProcessingComplete = false;
 
         do {
             if ($this->is_chunked) {
@@ -1127,7 +1189,9 @@ class HttpClient {
                     $this->disconnect();
                 }
                 throw new SocketReadException($this->URL . " - Failed reading data from socket");
-            } else if (strlen($data)) {
+            }
+
+            if ($data !== '') {
                 $this->last_read = microtime(true);
                 if ($this->ttfb === 0) {
                     $this->ttfb = microtime(true) - $this->ttfb_start_time;
@@ -1152,60 +1216,18 @@ class HttpClient {
                     throw new ResponseTooLargeException($this->URL . ' - Response data exceeds the limit of ' . $this->max_response_size . ' bytes');
                 }
 
-                if (!$this->headers && $this->extractHeaders()) {
+                if ($this->extractHeaders()) {
                     if ($this->http_method == 'HEAD') break;
 
                     if ($this->doNotDownload && !$this->follow_redirects) {
                         break;
                     }
 
-                    foreach ($this->headers as $name => $value) {
-                        switch ($name) {
-                        case 'content-length':
-                            $this->data_len = (int)$value;
+                    if (! $isHeadersProcessingComplete) {
+                        $isHeadersProcessingComplete = true;
 
-                            if ($this->data_len > $this->max_response_size) {
-                                $this->disconnect();
-                                throw new ResponseTooLargeException($this->URL . ' - Response data exceeds the limit of ' . $this->max_response_size . ' bytes');
-                            }
+                        if ($this->processHeaders($this->headers)) {
                             break;
-                        case 'content-encoding':
-                            $isGzip = false;
-                            if (is_array($value)) {
-                                $params = array_map('strtolower', $value);
-                                if (array_pop($params) === 'gzip') {
-                                    $isGzip = true;
-                                }
-                            } else if (strtolower($value) == 'gzip') {
-                                $isGzip = true;
-                            }
-
-                            if ($isGzip) {
-                                $this->is_gzipped = true;
-                                if ($this->auto_deflate) {
-                                    $this->gzip_filter = stream_filter_append($this->body_stream, "zlib.inflate", STREAM_FILTER_WRITE);
-                                }
-                            }
-                            break;
-                        case 'transfer-encoding':
-                            $isChunked = false;
-                            if (is_array($value)) {
-                                $params = array_map('strtolower', $value);
-                                if (array_pop($params) != 'identity') {
-                                    $isChunked = true;
-                                }
-                            } else if (strtolower($value) != 'identity') {
-                                $isChunked = true;
-                            }
-
-                            if ($isChunked) {
-                                $this->is_chunked = true;
-                            }
-                        }
-
-                        if ($name == 'location') {
-                            $this->has_redirect_header = true;
-                            break 2;
                         }
                     }
 
@@ -1213,7 +1235,7 @@ class HttpClient {
                         break;
                     }
 
-                    if (strlen($this->buffer) && !$this->is_chunked) {
+                    if ($this->buffer !== null && $this->buffer !== '' && !$this->is_chunked) {
                         $this->processData($this->buffer);
 
                         $this->buffer = NULL;
@@ -1267,100 +1289,124 @@ class HttpClient {
         return false;
     }
 
-    private function processData($data) {
-        if ($this->is_gzipped) {
-            $headerLen = strlen($this->gzip_header);
-            if ($headerLen < 10) {
-                /* Start looking for the GZIP header. Sometimes there is data preceding the gzipped data, which must be ignored */
-                if ($headerLen == 0) {
-                    $headerStart = strpos($data, chr(0x1F) . chr(0x8B));
-                    if ($headerStart !== false) {
-                        if ($headerStart > 0) {
-                            $this->ignored_data .= substr($data, 0, $headerStart);
-                            $data = substr($data, $headerStart);
-                        }
-                    } else if (substr($data, -1) == chr(0x1F)) {
-                        $this->ignored_data .= substr($data, 0, -1);
-                        $data = substr($data, -1);
-                    } else {
-                        $this->ignored_data .= $data;
-                        return;
+    /**
+     * @param array $headers
+     * @return true|null Returns true if the headers contain a Location header, null otherwise
+     * @throws ResponseTooLargeException
+     */
+    private function processHeaders(array $headers)
+    {
+        foreach ($headers as $name => $value) {
+            switch ($name) {
+                case 'location':
+                    $this->has_redirect_header = true;
+                    return true;
+
+                case 'content-length':
+                    $this->data_len = (int)$value;
+
+                    if ($this->data_len > $this->max_response_size) {
+                        $this->disconnect();
+                        throw new ResponseTooLargeException($this->URL . ' - Response data exceeds the limit of ' . $this->max_response_size . ' bytes');
                     }
-                } else if ($headerLen == 1) {
-                    if ($data[0] != chr(0x8B)) {
-                        $this->ignored_data .= $data;
-                        $this->gzip_header = "";
-                        return;
+                    break;
+
+                case 'content-encoding':
+                    $this->applyContentDecoding($this->body_stream, $this->getContentEncodingHeaderValue($value));
+                    break;
+
+                case 'transfer-encoding':
+                    $isChunked = false;
+                    $transferEncoding = is_array($value) ? $value : [$value];
+
+                    $params = array_map('strtolower', $transferEncoding);
+                    if (array_pop($params) != 'identity') {
+                        $isChunked = true;
                     }
-                }
-                /* End looking for gzip header */
 
-                $this->gzip_header .= $data;
-            } else {
-                $this->gzip_trailer .= $data;
-            }
-
-            if (strlen($this->gzip_header) > 10) {
-                $this->gzip_trailer = substr($this->gzip_header, 10);
-                $this->gzip_header = substr($this->gzip_header, 0, 10);
-                $this->gzip_ftext = ord($this->gzip_header[3]) & 0x80;
-                $this->gzip_fhcrc = ord($this->gzip_header[3]) & 0x40;
-                $this->gzip_fextra = ord($this->gzip_header[3]) & 0x20;
-                $this->gzip_fname = ord($this->gzip_header[3]) & 0x10;
-                $this->gzip_fcomment = ord($this->gzip_header[3]) & 0x08;
-            }
-
-            if ($this->gzip_fhcrc && !$this->gzip_consumed_crc_header && strlen($this->gzip_trailer) >= 2) {
-                $this->gzip_trailer = substr($this->gzip_trailer, 2);
-                $this->gzip_consumed_crc_header = true;
-            }
-
-            if ($this->gzip_fextra && !$this->gzip_consumed_extra_header && strlen($this->gzip_trailer) >= 2) {
-                if ($this->gzip_extra_remaining === NULL) {
-                    $this->gzip_extra_remaining = unpack("Slen", $this->gzip_trailer)["len"];
-                }
-                
-                $trailerLen = strlen($this->gzip_trailer);
-                $this->gzip_trailer = substr($this->gzip_trailer, $this->gzip_extra_remaining - 1);
-                $this->gzip_extra_remaining += strlen($this->gzip_trailer) - $trailerLen;
-
-                if ($this->gzip_extra_remaining < 1) {
-                    if ($this->gzip_extra_remaining !== 0) {
-                        throw new \RuntimeException("Extra GZIP header was not consumed correctly");
+                    if ($isChunked) {
+                        $this->is_chunked = true;
                     }
-                    $this->gzip_consumed_extra_header = true;
-                }
+                    break;
             }
-
-            if ($this->gzip_fname && !$this->gzip_consumed_name_header && strlen($this->gzip_trailer) > 0) {
-                $bytes = unpack("C*", $this->gzip_trailer);
-                foreach ($bytes as $index => $byte) { // Indicies start from 1 in unpack
-                    if ($byte === 0) {
-                        break;
-                    }
-                }
-                $this->gzip_trailer = substr($this->gzip_trailer, (int)$index);
-                $this->gzip_consumed_name_header = true;
-            }
-
-            if ($this->gzip_fcomment && !$this->gzip_consumed_comment_header && strlen($this->gzip_trailer) > 0) {
-                $bytes = unpack("C*", $this->gzip_trailer);
-                foreach ($bytes as $index => $byte) { // Indicies start from 1 in unpack
-                    if ($byte === 0) {
-                        break;
-                    }
-                }
-                $this->gzip_trailer = substr($this->gzip_trailer, (int)$index);
-                $this->gzip_consumed_comment_header = true;
-            }
-
-            if (strlen($this->gzip_trailer) > 8) {
-                fwrite($this->body_stream, substr($this->gzip_trailer, 0, -8));
-                $this->gzip_trailer = substr($this->gzip_trailer, -8);
-            }
-        } else {
-            fwrite($this->body_stream, $data);
         }
+
+        return null;
+    }
+
+    private function isStreamFilterContentDecodingSupported()
+    {
+        return $this->auto_deflate;
+    }
+
+    /**
+     * @param resource $stream
+     * @param array $contentEncodingHeader
+     * @return void
+     */
+    private function applyContentDecoding($stream, $contentEncodingHeader)
+    {
+        if (count($this->streamFilters) > 0) {
+            // Content-Encoding header was already processed and decoding filters were applied.
+            return;
+        }
+
+        foreach ($this->determineStreamDecompressionFilters($contentEncodingHeader) as list($streamDecompressionFilter, $args)) {
+            $this->streamFilters[] = stream_filter_append($stream, $streamDecompressionFilter, STREAM_FILTER_WRITE, $args);
+        }
+    }
+
+    private function determineStreamDecompressionFilters(array $contentEncodingHeader)
+    {
+        if (! $this->isStreamFilterContentDecodingSupported()) {
+            return [];
+        }
+
+        if ($contentEncodingHeader === ['none']) {
+            // The value of "none" is not part of the official documentation, yet some servers seem to use it.
+            // @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Encoding
+            return [];
+        }
+
+        return array_map(
+            static function ($contentEncoding) {
+                if (! array_key_exists($contentEncoding, self::STREAM_DECOMPRESSION_FILTERS)) {
+                    throw new \LogicException(sprintf('Unsupported stream decompression filter: %s', $contentEncoding));
+                }
+
+                list($requirement, $decoder, $args) = self::STREAM_DECOMPRESSION_FILTERS[$contentEncoding];
+
+                if (is_string($requirement) && ! in_array($requirement, stream_get_filters())) {
+                    throw new \LogicException(sprintf('Stream filter does not exist: %s', $requirement));
+                }
+
+                return [$decoder, $args];
+            },
+            array_reverse($contentEncodingHeader)
+        );
+    }
+
+    /**
+     * @return string[]
+     */
+    protected static function determineSupportedContentEncodings()
+    {
+        $supportedContentEncodings = [];
+        $availableStreamFilters = stream_get_filters();
+
+        foreach (self::STREAM_DECOMPRESSION_FILTERS as $key => list($requirement)) {
+            if (! in_array($requirement, $availableStreamFilters, true)) {
+                continue;
+            }
+
+            $supportedContentEncodings[] = $key;
+        }
+
+        return $supportedContentEncodings;
+    }
+
+    private function processData($data) {
+        fwrite($this->body_stream, $data);
     }
 
     private function hasStreamEnded() {
@@ -1377,14 +1423,19 @@ class HttpClient {
                     $chunk_parts = explode(";", $chunk_header_str);
                     $chunk_size = hexdec(trim($chunk_parts[0]));
 
-                    if ($chunk_size == 0) {
-                        $this->end_of_chunks = true;
-                        break;
-                    }
-
                     if (!is_int($chunk_size)) {
                         $this->disconnect();
                         throw new ChunkSizeException($this->URL . " - Chunk size is not an integer");
+                    }
+
+                    if ($chunk_size < 0) {
+                        $this->disconnect();
+                        throw new ChunkSizeException($this->URL . " - Chunk size is negative");
+                    }
+
+                    if ($chunk_size === 0) {
+                        $this->end_of_chunks = true;
+                        break;
                     }
 
                     $this->buffer = strlen($this->buffer) > $chunk_header_end + 2 ? substr($this->buffer, $chunk_header_end+2) : "";
@@ -1393,26 +1444,25 @@ class HttpClient {
                     break;
                 }
             } else {
-                if ($this->buffer) {
-                    $data = substr($this->buffer, 0, $this->chunk_remainder);
-                    $read_len = strlen($data);
-                    if ($this->chunk_remainder > 2) {
-                        if ($read_len == $this->chunk_remainder) {
-                            $data = substr($data, 0, -2); // Chunk data includes the \r\n, so strip the it
-                        } else if ($read_len == $this->chunk_remainder - 1) {
-                            $data = substr($data, 0, -1); // Chunk data includes the \r char but not the \n char, so strip only the \r
-                        }
+                $data = substr($this->buffer, 0, $this->chunk_remainder);
+                $read_len = strlen($data);
 
-                        $this->processData($data);
-
-                        if ($this->data_callback) {
-                            $this->data_callback($data);
-                        }
+                if ($this->chunk_remainder > 2) {
+                    if ($read_len == $this->chunk_remainder) {
+                        $data = substr($data, 0, -2); // Chunk data includes the \r\n, so strip the it
+                    } else if ($read_len == $this->chunk_remainder - 1) {
+                        $data = substr($data, 0, -1); // Chunk data includes the \r char but not the \n char, so strip only the \r
                     }
 
-                    $this->chunk_remainder -= $read_len;
-                    $this->buffer = strlen($this->buffer) > $read_len ? substr($this->buffer, $read_len) : "";
+                    $this->processData($data);
+
+                    if ($this->data_callback) {
+                        $this->data_callback($data);
+                    }
                 }
+
+                $this->chunk_remainder -= $read_len;
+                $this->buffer = strlen($this->buffer) > $read_len ? substr($this->buffer, $read_len) : "";
             }
         }
     }
@@ -1423,10 +1473,11 @@ class HttpClient {
         $headers_end = strpos($this->buffer, "\r\n\r\n");
 
         if ($headers_end) {
-            $headers_str = substr($this->buffer, 0, $headers_end);
-            $this->buffer = strlen($this->buffer) > $headers_end + 4 ? substr($this->buffer, $headers_end+4) : "";
+            $rawHttpHeaders = substr($this->buffer, 0, $headers_end);
+            $contentStartsAt = $headers_end + 4;
+            $this->buffer = strlen($this->buffer) > $contentStartsAt ? substr($this->buffer, $contentStartsAt) : '';
             $this->data_size = strlen($this->buffer);
-            preg_match_all('/^(.*)/mi', $headers_str, $headers);
+            preg_match_all('/^(.*)/mi', $rawHttpHeaders, $headers);
             foreach ($headers[1] as $i=>$header) {
                 $parts = explode(": ", trim($header));
 
@@ -1507,14 +1558,13 @@ class HttpClient {
         return false;
     }
 
+    /**
+     * @return string
+     */
     public function getRequestHeaders() {
         $headers = array();
         $headers[] = $this->http_method . " " . $this->path . " HTTP/1.1";
         $headers[] = "host: " . $this->host . ($this->port != self::$scheme_port_map[$this->scheme] ? ":{$this->port}" : '');
-
-        if ($this->accept_deflate) {
-            $headers[] = "accept-encoding: gzip";
-        }
 
         if ($this->connection_reuse) {
             $headers[] = "connection: keep-alive";
@@ -1550,6 +1600,10 @@ class HttpClient {
 
         if (empty($this->request_headers["accept"])) {
             $headers[] =  "accept: */*";
+        }
+
+        if ($this->accept_deflate && count(static::$supportedContentEncodings) > 0) {
+            $headers[] = 'accept-encoding: ' . implode(', ', static::$supportedContentEncodings);
         }
 
         if ($this->post_data && ($this->http_method == "POST" || $this->http_method == "PUT") ) {
@@ -1590,9 +1644,12 @@ class HttpClient {
         ];
     }
 
-    private function initBodyStream() {
-        $max_memory = 1024 * 1024 * 5;
-        $this->body_stream = fopen("php://temp/maxmemory:$max_memory", "w+");
+    /**
+     * @return void
+     */
+    private function initBodyStream()
+    {
+        $this->body_stream = fopen('php://temp/maxmemory:' . self::STREAM_MAX_SIZE, 'wb+');
     }
 
     private function isSecure() {
@@ -1675,5 +1732,25 @@ class HttpClient {
         }
 
         trigger_error($this->last_error["errstr"], $errorLevel);
+    }
+
+    /**
+     * @param array|string $rawHeaderValue
+     * @return array
+     */
+    private function getContentEncodingHeaderValue($rawHeaderValue)
+    {
+        // This header could be set multiple times or may contain multiple comma-separated values.
+        // @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Encoding
+
+        if (is_array($rawHeaderValue)) {
+            return $rawHeaderValue;
+        }
+
+        if (is_string($rawHeaderValue)) {
+            return array_map('trim', explode(',', $rawHeaderValue));
+        }
+
+        throw new \LogicException('Unsupported header value type: ' . var_export($rawHeaderValue, true));
     }
 }

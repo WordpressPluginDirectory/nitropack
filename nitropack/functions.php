@@ -1118,7 +1118,7 @@ function load_nitropack_scripts_styles($page) {
 }
 add_action('admin_enqueue_scripts', 'load_nitropack_scripts_styles');
 
-function nitropack_print_notice($type, $message, $dismissibleId = true, $canBeFiltered = true) {
+function nitropack_print_notice($type, $message, $dismissibleId = true, $canBeFiltered = true, $app_notification = []) {
     if ($dismissibleId) {
         if (!empty($_COOKIE["dismissed_notice_" . $dismissibleId])) return;
         echo '<div class="nitro-notification notification-' . $type . ' is-dismissible" data-dismissible-id="' . $dismissibleId . '">';
@@ -1139,11 +1139,13 @@ function nitropack_print_notice($type, $message, $dismissibleId = true, $canBeFi
     if (get_nitropack()->getDistribution() == "oneclick" && $canBeFiltered) {
         $htmlMessage = apply_filters("nitropack_oneclick_print_notice", $htmlMessage);
     }
-    if ($dismissibleId) {
-        $htmlMessage .= "<div class='actions'>
-            <a class='btn btn-secondary btn-dismiss' href='javascript:void(0);' onclick='jQuery.post(ajaxurl, {action: \"$dismissibleId\", nonce: \"" . wp_create_nonce(NITROPACK_NONCE) . "\"}); jQuery(this).closest(\".is-dismissible\").hide();'>" . esc_html__('Dismiss', 'nitropack') . "</a>
-        </div>";
+    $htmlMessage .= '<div class="actions">';
+    if ($app_notification) {
+        $htmlMessage .= '<a class="btn btn-secondary btn-dismiss rml_btn" data-notification_end="' . $app_notification['end_date'] . '" data-notification_id="' . $app_notification['id'] . '">' . esc_html__('Dismiss', 'nitropack') . '</a>';
+    } else if ($dismissibleId) {
+        $htmlMessage .= '<a class="btn btn-secondary btn-dismiss" onclick="jQuery.post(ajaxurl, {action: \'' . $dismissibleId . '\', nonce: \'' . wp_create_nonce(NITROPACK_NONCE) . '\'}); jQuery(this).closest(\'.is-dismissible\').hide();">' . esc_html__('Dismiss', 'nitropack') . '</a>';
     }
+    $htmlMessage .= '</div>';
     echo $htmlMessage;
     echo '</div>
     </div>';
@@ -1263,7 +1265,7 @@ function nitropack_admin_notices() {
     $screen = get_current_screen();
     if ($screen->id != 'settings_page_nitropack') {
         foreach (get_nitropack()->Notifications->get('system') as $notification) {
-            nitropack_print_notice('info', $notification['message'], $notification["id"], false);
+            nitropack_print_notice('info', $notification['message'], $notification["id"], false, $notification);
         }
     }
 
@@ -2273,28 +2275,27 @@ function nitropack_handle_post_transition($new, $old, $post) {
             case "custom_css":
                 nitropack_invalidate(NULL, NULL, sprintf("Invalidation of all pages due to modifying custom CSS"));
                 break;
-            default:
+                default:
                 if ($new == "future") {
                     nitropack_clean_post_cache($post, array('added' => nitropack_get_taxonomies($post)), true, sprintf("Invalidate related pages due to scheduling %s '%s'", $nicePostTypeLabel, $post->post_title));
+                } else if ($new === 'publish' && $old === 'trash') {
+                    nitropack_clean_post_cache($post, array('added' => nitropack_get_taxonomies($post)), true, sprintf("Invalidate related pages due to restoring %s '%s'", $nicePostTypeLabel, $post->post_title));
                 } else if ($new == "publish" && $old != "publish") {
                     $post->nicePostTypeLabel = $nicePostTypeLabel;
                     set_transient($post->ID . '_np_first_publish', $post, 120);
-                } else if ($new == "trash" && $old == "publish") {
+                }  else if ($new == "trash" && $old == "publish") {
                     nitropack_clean_post_cache($post, array('deleted' => nitropack_get_taxonomies($post)), true, sprintf("Invalidate related pages due to deleting %s '%s'", $nicePostTypeLabel, $post->post_title), true);
                 } else if ($new == "private" && $old == "publish") {
                     nitropack_clean_post_cache($post, array('deleted' => nitropack_get_taxonomies($post)), true, sprintf("Invalidate related pages due to making %s '%s' private", $nicePostTypeLabel, $post->post_title), true);
                 } else if ($new == "draft" && $old == "publish") {
                     nitropack_clean_post_cache($post, array('deleted' => nitropack_get_taxonomies($post)), true, sprintf("Invalidate related pages due to making %s '%s' a draft", $nicePostTypeLabel, $post->post_title), true);
                 } else if ($new != "trash") {
-                    if (get_option('nitropack-legacyPurge', 0) && !defined('NITROPACK_PURGE_CACHE')) {
-                        //Below if will be removed
-                        if ($post->post_author > 0) {
-                            \NitroPack\WordPress\NitroPack::$np_loggedWarmups[] = get_permalink($post);
-                            nitropack_clean_post_cache($post);
-                            define('NITROPACK_PURGE_CACHE', true);
-                        }
-                    } elseif (!defined('NITROPACK_PURGE_CACHE')) {
+                    if (!defined('NITROPACK_PURGE_CACHE')) {
                         nitropack_detect_changes_and_clean_post_cache($post);
+                    }
+                    if ($new == 'publish') {
+                        /* we need to handle the case  here for new CPT posts to be optimized initially. No need to reoptimize an untrashed post */
+                        \NitroPack\WordPress\NitroPack::$np_loggedWarmups[] = get_permalink($post->ID);
                     }
                 }
                 break;
@@ -3271,11 +3272,10 @@ function nitropack_get_site_config() {
 function nitropack_get_current_site_id() {
 
     $site_config = nitropack_get_site_config();
-    
+
     if ($site_config && isset($site_config['siteId'])) {
         return $site_config['siteId'];
     }
-
 }
 
 function get_nitropack() {
@@ -3519,9 +3519,16 @@ function nitropack_admin_bar_menu($wp_admin_bar) {
             }
         }
     }
+    /* Notifications from the app */
+    $notificationCount = 0;
+    foreach (get_nitropack()->Notifications->get('system') as $notification) {
+        if (!nitropack_is_dismissed_notice($notification["id"])) {
+            $notificationCount++;
+        }
+    }
 
     $numberOfPluginIssues = $numberOfPluginErrors + $numberOfPluginWarnings;
-    $css_counter = 'line-height: 1.5;color: #fff;font-size: 11px; text-align: center; background-color: #ca4a1f; border-radius: 50%; width: 1rem; height: 1rem; display: inline-block;';
+
     if ($numberOfPluginErrors > 0) {
         $pluginStatus = 'error';
     } else if ($numberOfPluginWarnings > 0) {
@@ -3555,7 +3562,9 @@ function nitropack_admin_bar_menu($wp_admin_bar) {
     } else {
         $title = '&nbsp;&nbsp;<i style="" class="circle nitro nitro-status nitro-status-' . $pluginStatus . '" aria-hidden="true"></i>&nbsp;&nbsp;NitroPack';
         if ($pluginStatus != "ok") {
-            $title .= ' <span class="nitro-issues-count" style="' . $css_counter . '">' . $numberOfPluginIssues . '</span>';
+            $title .= ' <span class="circle-with-text nitro-color-issues" id="nitro-total-issues-count">' . ($numberOfPluginIssues + $notificationCount) . '</span>';
+        } else if ($notificationCount > 0) {
+            $title .= ' <span class="circle-with-text nitro-color-notification" id="nitro-total-issues-count">' . $notificationCount . '</span>';
         }
         $node = array(
             'id' => 'nitropack-top-menu',
@@ -3566,20 +3575,14 @@ function nitropack_admin_bar_menu($wp_admin_bar) {
             )
         );
 
+        $settings_extra = '';
+        if ($notificationCount) {
+            $settings_extra .= ' <span class="circle-with-text nitro-color-notification" id="nitro-notification-issues-count">' . $notificationCount . '</span>';
+        }
         $wp_admin_bar->add_node(array(
             'id' => 'nitropack-top-menu-settings',
             'parent' => 'nitropack-top-menu',
-            'title' => __('Settings', 'nitropack'),
-            'href' => admin_url('admin.php?page=nitropack'),
-            'meta' => array(
-                'class' => 'nitropack-settings'
-            )
-
-        ));
-        $wp_admin_bar->add_node(array(
-            'id' => 'nitropack-top-menu-settings',
-            'parent' => 'nitropack-top-menu',
-            'title' => __('Settings', 'nitropack'),
+            'title' => __('Settings', 'nitropack') . ' ' . $settings_extra . '',
             'href' => admin_url('admin.php?page=nitropack'),
             'meta' => array(
                 'class' => 'nitropack-settings'
@@ -3631,7 +3634,7 @@ function nitropack_admin_bar_menu($wp_admin_bar) {
                 array(
                     'parent' => 'nitropack-top-menu',
                     'id'     => 'optimizations-plugin-status',
-                    'title'  =>  'Issues&nbsp;&nbsp;<span style="' . $css_counter . '">' . $numberOfPluginIssues . '</span>',
+                    'title'  =>  'Issues <span class="circle-with-text nitro-color-issues">' . $numberOfPluginIssues . '</span>',
                     'href'   =>  admin_url('admin.php?page=nitropack'),
                     'meta' => array(
                         'class' => 'nitropack-plugin-status',
@@ -3640,27 +3643,27 @@ function nitropack_admin_bar_menu($wp_admin_bar) {
             );
         }
 
-        $notificationCount = 0;
-        foreach (get_nitropack()->Notifications->get('system') as $notification) {
-            if (!nitropack_is_dismissed_notice($notification["id"])) {
-                $notificationCount++;
-            }
-        }
+        // $notificationCount = 0;
+        // foreach (get_nitropack()->Notifications->get('system') as $notification) {
+        //     if (!nitropack_is_dismissed_notice($notification["id"])) {
+        //         $notificationCount++;
+        //     }
+        // }
 
-        if ($notificationCount) {
-            $node['title'] .= '&nbsp;&nbsp;<span style="' . $css_counter . '">' . $notificationCount . '</span>';
-            $wp_admin_bar->add_node(
-                array(
-                    'parent' => 'nitropack-top-menu',
-                    'id'     => 'nitropack-notifications',
-                    'title'  =>  'Notifications&nbsp;&nbsp;<span style="color:#fff;background-color:#72aee6;border-radius:11px;padding: 2px 7px">' . $notificationCount . '</span>',
-                    'href'   =>  admin_url('admin.php?page=nitropack'),
-                    'meta' => array(
-                        'class' => 'nitropack-notifications',
-                    )
-                )
-            );
-        }
+        // if ($notificationCount) {
+        //     $node['title'] .= ' <span class="circle-with-text nitro-color-notification">' . $notificationCount . '</span>';
+        //     $wp_admin_bar->add_node(
+        //         array(
+        //             'parent' => 'nitropack-top-menu',
+        //             'id'     => 'nitropack-notifications',
+        //             'title'  =>  'Notifications <span class="circle-with-text nitro-color-notification">' . $notificationCount . '</span>',
+        //             'href'   =>  admin_url('admin.php?page=nitropack'),
+        //             'meta' => array(
+        //                 'class' => 'nitropack-notifications',
+        //             )
+        //         )
+        //     );
+        // }
     }
 
     $wp_admin_bar->add_node($node);
@@ -3769,17 +3772,6 @@ function nitropack_plugin_notices() {
     $smStatus = get_option('nitropack-safeModeStatus', "-1");
     if ($smStatus === "-1") $smStatus = nitropack_safemode_status(true);
     if ($smStatus) {
-        // $safeModeMessage = '
-        // <div class="title-wrapper">
-        //         <img src="' . plugin_dir_url(__FILE__) . 'view/images/alert-triangle.svg" alt="alert" class="icon" />
-        //     <h5 class="title">' . esc_html__('Important', 'nitropack') . '</h5>
-        // </div>';
-        $safeModeMessage = __('Test Mode is enabled for your site and visitors are accessing your unoptimized pages. Make sure to disable it once you are done testing.', 'nitropack');
-        // $safeModeMessage = '
-        // <div class="title-wrapper">
-        //         <img src="' . plugin_dir_url(__FILE__) . 'view/images/alert-triangle.svg" alt="alert" class="icon" />
-        //     <h5 class="title">' . esc_html__('Important', 'nitropack') . '</h5>
-        // </div>';
         $safeModeMessage = __('Test Mode is enabled for your site and visitors are accessing your unoptimized pages. Make sure to disable it once you are done testing.', 'nitropack');
         if (get_nitropack()->getDistribution() == "oneclick") {
             $safeModeMessage = apply_filters("nitropack_oneclick_safemode_message", $safeModeMessage);

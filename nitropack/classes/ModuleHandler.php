@@ -58,6 +58,7 @@ class ModuleHandler {
         "NitroPack/Integration/Plugin/Elementor",
         "NitroPack/Integration/Plugin/WPForms",
         "NitroPack/Integration/Plugin/GeoTargetingWP",
+        "NitroPack/Integration/Plugin/WPML",
         "NitroPack/Feature/SubrequestCache",
         "NitroPack/Feature/AjaxShortcodes",
     ];

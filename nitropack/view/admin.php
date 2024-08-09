@@ -9,30 +9,29 @@
   </nav>
 
   <main id="main">
-    
+
     <div class="container">
       <?php if (count(get_nitropack()->Notifications->get('system')) > 0) { ?>
-        <div class="notification notification-danger" id="notifications">
-          <div class="text-box">
-            <div class="title-wrapper">
-              <img src="<?php echo plugin_dir_url(__FILE__) . 'images/alert-triangle.svg'; ?>" alt="alert" class="icon" />
-              <h5 class="title"><?php esc_html_e('Notifications', 'nitropack'); ?></h5>
-            </div>
-            <ul>
-
-              <?php foreach (get_nitropack()->Notifications->get('system') as $notification) : ?>
-                <li class="grid grid-cols-2 justify-between items-center">
-                  <div class="col-span-8">
+        <ul class="notifications-list" id="app-notifications">
+          <?php foreach (get_nitropack()->Notifications->get('system') as $notification) : ?>
+            <li class="nitro-notification notification-info app-type-<?php echo $notification['type']; ?>">
+              <div class="notification-inner">
+                <div class="title-msg">
+                  <div class="title-wrapper">
+                    <img src="<?php echo plugin_dir_url(__FILE__) . 'images/bell.svg'; ?>" alt="alert" class="icon">
+                    <h5 class="title">Info</h5>
+                  </div>
+                  <div class="msg">
                     <?php echo $notification['message']; ?>
                   </div>
-                  <div class="col-span-4 ml-auto">
-                    <a class="btn btn-danger rml_btn" data-notification_end="<?php echo $notification['end_date']; ?>" data-notification_id="<?php echo $notification['id']; ?>">Remind me later</a>
-                  </div>
-                </li>
-              <?php endforeach; ?>
-            </ul>
-          </div>
-        </div>
+                </div>
+                <div class="col-span-4 ml-auto actions">
+                  <a class="btn btn-secondary btn-dismiss rml_btn" data-notification_end="<?php echo $notification['end_date']; ?>" data-notification_id="<?php echo $notification['id']; ?>"><?php _e('Dismiss', 'nitropack'); ?></a>
+                </div>
+              </div>
+            </li>
+          <?php endforeach; ?>
+        </ul>
       <?php } ?>
       <?php if (!isset($_GET['subpage'])) : ?>
         <?php require_once NITROPACK_PLUGIN_DIR . "view/dashboard.php";
@@ -168,9 +167,9 @@
 
     window.addEventListener("cache.purge.success", function() {
       setTimeout(function() {
-          document.cookie = "nitropack_apwarning=1; expires=Thu, 01 Jan 1970 00:00:01 GMT; path=<?php echo nitropack_cookiepath(); ?>";
-          window.location.reload()
-        }, 1500)
+        document.cookie = "nitropack_apwarning=1; expires=Thu, 01 Jan 1970 00:00:01 GMT; path=<?php echo nitropack_cookiepath(); ?>";
+        window.location.reload()
+      }, 1500)
     });
 
     $(window).on("load", _ => {

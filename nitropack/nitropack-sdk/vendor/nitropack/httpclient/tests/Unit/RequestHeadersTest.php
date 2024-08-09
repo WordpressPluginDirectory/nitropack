@@ -1,6 +1,7 @@
 <?php
 
-use NitroPack\Url\Url;
+namespace Tests\Unit;
+
 use NitroPack\HttpClient\HttpClient;
 use PHPUnit\Framework\TestCase;
 

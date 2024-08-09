@@ -7,17 +7,24 @@
             "source": {
                 "type": "git",
                 "url": "git@bitbucket.org:nitropack/httpclient.git",
-                "reference": "f914664ebe9df68343b36c63b91e41edeff1616f"
+                "reference": "278749d494cfa7303bc1208e5ff55bf86ed6193b"
             },
             "require": {
-                "nitropack/url": "dev-master"
+                "nitropack/url": "dev-master",
+                "php": "^5.6|^7.0|^8.0"
             },
             "require-dev": {
+                "ext-pcntl": "*",
+                "monolog/monolog": "^3.6",
                 "phpunit/phpunit": "^10",
                 "react/http": "^1.8",
-                "react/socket": "^1.12"
+                "react/socket": "^1.12",
+                "shyim/testcontainer": "^0.1.4",
+                "symfony/console": "^6.4",
+                "symfony/process": "^6.4",
+                "symfony/var-dumper": "^6.4"
             },
-            "time": "2024-06-02T13:26:42+00:00",
+            "time": "2024-08-08T15:32:40+00:00",
             "default-branch": true,
             "type": "library",
             "installation-source": "source",
@@ -26,9 +33,23 @@
                     "NitroPack\\HttpClient\\": "src/"
                 }
             },
+            "autoload-dev": {
+                "psr-4": {
+                    "Tests\\": "tests/"
+                }
+            },
             "scripts": {
                 "test": [
-                    "phpunit --testdox tests"
+                    "composer prepare-test-image && composer run-unit-tests && composer run-feature-tests"
+                ],
+                "prepare-test-image": [
+                    "docker build -t nitropack-httpclient:latest ."
+                ],
+                "run-unit-tests": [
+                    "vendor/bin/phpunit --testdox --testsuite unit"
+                ],
+                "run-feature-tests": [
+                    "vendor/bin/phpunit --testsuite feature"
                 ]
             },
             "authors": [
@@ -52,18 +73,26 @@
             "source": {
                 "type": "git",
                 "url": "git@bitbucket.org:nitropack/url.git",
-                "reference": "0e8a916a754f812071bf7cb59d321f7012e2ec78"
+                "reference": "534391466412aac194310254d14a5023649f68f6"
+            },
+            "require": {
+                "php": "^5.6|^7.0|^8.0"
             },
             "require-dev": {
-                "phpunit/phpunit": "^9"
+                "phpunit/phpunit": "^5.7"
             },
-            "time": "2024-06-24T10:44:02+00:00",
+            "time": "2024-08-08T09:14:16+00:00",
             "default-branch": true,
             "type": "library",
             "installation-source": "source",
             "autoload": {
                 "psr-4": {
                     "NitroPack\\Url\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "Tests\\": "tests/"
                 }
             },
             "authors": [

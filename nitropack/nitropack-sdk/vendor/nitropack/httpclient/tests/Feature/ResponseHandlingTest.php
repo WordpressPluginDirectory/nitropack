@@ -1,6 +1,7 @@
 <?php
 
-use PHPUnit\Framework\TestCase;
+namespace Tests\Feature;
+
 use React\Http\Message\Response;
 use React\Http\HttpServer;
 use Psr\Http\Message\ServerRequestInterface;
@@ -13,14 +14,14 @@ class ResponseHandlingTest extends TestCase
 
     private function startServer() {
         echo "Starting server..." . PHP_EOL;
-        $loop = React\EventLoop\Loop::get();
+        $loop = \React\EventLoop\Loop::get();
         $server = new HttpServer(function (ServerRequestInterface $request) {
             if ($request->getUri()->getPath() === '/health') {
                 return new Response(200, [], 'OK');
             }
 
             $requestPath = ltrim($request->getUri()->getPath(), '/');
-            $responseFile = __DIR__ . "/fixtures/response-{$requestPath}.json";
+            $responseFile = __DIR__ . "/ResponseHandlingTest/response-{$requestPath}.json";
             if (file_exists($responseFile)) {
                 $resp = json_decode(file_get_contents($responseFile), true);
 
@@ -35,7 +36,7 @@ class ResponseHandlingTest extends TestCase
             return new Response(404, [], 'Resource Not Found ' . $responseFile);
         });
         
-        $socket = new React\Socket\SocketServer('0.0.0.0:8000');
+        $socket = new \React\Socket\SocketServer('0.0.0.0:8000');
         $server->listen($socket);
         echo 'Server running at http://0.0.0.0:8000' . PHP_EOL;
         $loop->run();

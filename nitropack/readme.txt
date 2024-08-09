@@ -2,9 +2,9 @@
 Contributors: nitropack
 Tags: speed, cache, performance, optimize pagespeed, lazy load, cdn, cache, critical css
 Requires at least: 4.7
-Tested up to: 6.5.2
+Tested up to: 6.6.1
 Requires PHP: 5.6
-Stable tag: 1.16.2
+Stable tag: 1.16.7
 License: GNU General Public License, version 2
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -43,7 +43,7 @@ NitroPack delivers a significant speed boost to your website instantly, eliminat
 [Speed up your site with NitroPack](https://nitropack.io/?utm_source=wp-repo&utm_medium=link&utm_term=description&utm_campaign=WP-plugin&utm_content=speed-up-your-site-with-nitropack)
 
 
-Let's delve into what makes NitroPack the ultimate cache and speed optimizer for your site:
+Let's delve into what makes NitroPack the ultimate cache and speed optimizer  for your site:
 
 
 ## 💾 ADVANCED CACHING:
@@ -278,6 +278,24 @@ Yes, the plugin uses the [Intercom Chat Widget](https://widget.intercom.io), whi
 
 
 == Changelog ==
+= 1.16.7 =
+* Bug fix: Resolve warmup stats widget loading issues
+
+= 1.16.6 =
+* Bug fix: Resolve plugin connect issues
+
+= 1.16.5 =
+* Bug fix: Notification dismiss button position and action
+* Bug fix: Automatically purge when updating a post/page.
+
+= 1.16.4 =
+* Improvement: Untrashing now invalidates related pages.
+* Improvement: Cache Warmup now optimizes newly published CPT.
+* Bug fix: Fix "Dismiss" button for notifications coming from the NitroPack app.
+* Bug fix: General notification visual fixes and improvements.
+
+= 1.16.3 =
+* Bug fix: Compatibility with WPML when connecting NitroPack.
 
 = 1.16.2 =
 * Bug fix: Handle cases with empty post data for AJAX shortcodes

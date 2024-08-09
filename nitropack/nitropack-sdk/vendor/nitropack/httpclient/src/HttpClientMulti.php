@@ -3,8 +3,11 @@
 namespace NitroPack\HttpClient;
 
 class HttpClientMulti {
+    /** @var HttpClient[] */
     private $clients;
+    /** @var null|callable */
     private $successCallback;
+    /** @var null|callable */
     private $errorCallback;
     private $returnClients;
     private $intervals;
@@ -23,19 +26,34 @@ class HttpClientMulti {
         $this->returnClients = $status;
     }
 
+    /**
+     * @param HttpClient $client
+     * @return void
+     */
     public function push($client) {
         $this->clients[] = $client;
         $this->clientRegistrationTimes->attach($client, time());
     }
 
+    /**
+     * @return array|HttpClient[]
+     */
     public function getClients() {
         return $this->clients;
     }
 
+    /**
+     * @param callable $callback
+     * @return void
+     */
     public function onSuccess($callback) {
         $this->successCallback = $callback;
     }
 
+    /**
+     * @param callable $callback
+     * @return void
+     */
     public function onError($callback) {
         $this->errorCallback = $callback;
     }
