@@ -4,7 +4,7 @@ Tags: speed, cache, performance, optimize pagespeed, lazy load, cdn, cache, crit
 Requires at least: 4.7
 Tested up to: 6.6.1
 Requires PHP: 5.6
-Stable tag: 1.16.7
+Stable tag: 1.16.8
 License: GNU General Public License, version 2
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -278,6 +278,9 @@ Yes, the plugin uses the [Intercom Chat Widget](https://widget.intercom.io), whi
 
 
 == Changelog ==
+= 1.16.8 =
+* Improvement: Security for AJAX shortcodes
+
 = 1.16.7 =
 * Bug fix: Resolve warmup stats widget loading issues
 
