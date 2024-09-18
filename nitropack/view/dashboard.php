@@ -1,10 +1,8 @@
-<?php
-$processing = 0;
+<?php $processing = 0;
 $usage = '0 MB';
 $max_usage = '1 GB';
 $page_views = '0';
-$max_page_views = '10000';
-?>
+$max_page_views = '10000'; ?>
 <?php nitropack_display_admin_notices(); ?>
 <div class="grid grid-cols-2 gap-6 grid-col-1-tablet items-start">
   <div class="col-span-1">
@@ -19,13 +17,13 @@ $max_page_views = '10000';
         </div>
       </div>
       <div class="card-body">
-        <div class="flex flex-row items-center">
+        <div class="card-body-inner">
           <div class="optimized-pages"><span data-optimized-pages-total>0</span></div>
-          <div class="text-box mr-2">
-            <p class="text-md"><?php esc_html_e('Last cache purge', 'nitropack'); ?>: <span data-last-cache-purge><?php esc_html_e('Never', 'nitropack'); ?></span> </br>
-              <?php esc_html_e('Reason', 'nitropack'); ?>: <span data-purge-reason><?php esc_html_e('Unknown', 'nitropack'); ?></span></p>
+          <div class="text-box">
+            <div class="time-ago"><?php esc_html_e('Last cache purge', 'nitropack'); ?>: <span data-last-cache-purge><?php esc_html_e('Never', 'nitropack'); ?></span></div>
+            <div class="reason"><?php esc_html_e('Reason', 'nitropack'); ?>: <span data-purge-reason><?php esc_html_e('Unknown', 'nitropack'); ?></span></div>
           </div>
-          <button id="optimizations-purge-cache" type="button" class="ml-auto btn btn-secondary flex-shrink-0" data-modal-target="modal-purge-cache" data-modal-toggle="modal-purge-cache"><?php esc_html_e('Purge cache', 'nitropack'); ?></button>
+          <button id="optimizations-purge-cache" type="button" class="btn btn-secondary" data-modal-target="modal-purge-cache" data-modal-toggle="modal-purge-cache"><?php esc_html_e('Purge cache', 'nitropack'); ?></button>
         </div>
       </div>
       <?php require_once NITROPACK_PLUGIN_DIR . 'view/modals/modal-purge-cache.php'; ?>
@@ -75,7 +73,7 @@ $max_page_views = '10000';
       <div class="card-footer">
         <div class="flex flex-row">
           <p class=""><?php esc_html_e('Which optimization mode to choose?', 'nitropack'); ?></p>
-          <a href="#" class="text-primary ml-auto" data-modal-target="modes-modal" data-modal-toggle="modes-modal"><?php esc_html_e('See modes comparison', 'nitropack'); ?></a>
+          <a class="text-primary btn-link ml-auto see-modes" data-modal-target="modes-modal" data-modal-toggle="modes-modal"><?php esc_html_e('See modes comparison', 'nitropack'); ?></a>
           <?php require_once NITROPACK_PLUGIN_DIR . 'view/modals/modal-modes.php'; ?>
         </div>
       </div>
@@ -107,7 +105,7 @@ $max_page_views = '10000';
                 <h6><?php esc_html_e('Page optimization', 'nitropack'); ?></h6>
                 <p><?php esc_html_e('Select what post/page types get optimized', 'nitropack'); ?></p>
               </div>
-              <a data-modal-target="modal-posttypes" data-modal-toggle="modal-posttypes" class="btn btn-secondary btn-icon" href="#">
+              <a data-modal-target="modal-posttypes" data-modal-toggle="modal-posttypes" class="btn btn-secondary btn-icon">
                 <img src="<?php echo plugin_dir_url(__FILE__); ?>images/setting-icon.svg">
               </a>
             </div>
@@ -118,27 +116,64 @@ $max_page_views = '10000';
     </div>
     <!-- Automated Behavior Card End -->
     <!-- Go to app Card -->
-    <div class="card app-card">
+    <div class="card exclusion-card">
+      <div class="card-header">
+        <h3><?php esc_html_e('Exclusions', 'nitropack'); ?></h3>
+      </div>
       <div class="card-body">
-        <div class="flex items-center justify-between">
-          <p><?php esc_html_e('You can further configure how NitroPack\'s optimization behaves through your account', 'nitropack'); ?>.</p>
-          <?php
-            function getNitropackDashboardUrl() {
-                $siteId = nitropack_get_current_site_id();
-                $dashboardUrl = 'https://app.nitropack.io/dashboard';
-            
-                if ($siteId !== null) {
-                    $dashboardUrl .= '?update_session_website_id=' . urlencode($siteId);
-                }
-            
-                return $dashboardUrl;
-            }
-          ?>
-          <a href="<?php echo esc_url(getNitropackDashboardUrl()); ?>" target="_blank" class="btn btn-primary ml-2 flex-shrink-0"><?php esc_html_e('Go to app', 'nitropack'); ?></a>
+        <div class="options-container">
+          <div class="nitro-option" id="ajax-shortcodes-widget">
+            <div class="nitro-option-main">
+              <div class="text-box">
+                <h6><?php esc_html_e('Shortcodes exclusions', 'nitropack'); ?></h6>
+                <p><?php esc_html_e('Load widgets, feeds, and any shortcode with AJAX to bypass the cache and always show the latest content.', 'nitropack'); ?></p>
+              </div>
+              <?php
+              global $shortcode_tags;
+              $nitropack = get_nitropack();
+              $siteConfig = $nitropack->Config->get();
+              $configKey = \NitroPack\WordPress\NitroPack::getConfigKey();
+
+              $ajax_shortcodes = $siteConfig[$configKey]['options_cache']['ajaxShortcodes'];
+              $ajax_shortcodes_enabled = $ajax_shortcodes['enabled'];
+              $shortcode_container_shown = $ajax_shortcodes_enabled ? '' : 'hidden';
+
+              ?>
+              <label class="inline-flex items-center cursor-pointer ml-auto">
+                <input type="checkbox" value="" class="sr-only peer" name="ajax_shortcodes" id="ajax-shortcodes" <?php if ($ajax_shortcodes_enabled) echo "checked"; ?>>
+                <div class="toggle"></div>
+              </label>
+            </div>
+            <div class="ajax-shortcodes <?php echo $shortcode_container_shown; ?>">
+              <div class="select-wrapper">
+                <select class="" name="nitropack-ajaxShortcodes" id="ajax-shortcodes-dropdown" multiple>
+                  <?php
+                  if (isset($ajax_shortcodes['shortcodes'])) {
+                    $ajax_shortcodes_list = $ajax_shortcodes['shortcodes'];
+                    $freely_added_shortcodes = array_diff($ajax_shortcodes_list, array_keys($shortcode_tags));
+                  }
+                  foreach ($shortcode_tags as $shortcode => $function) {
+                    $disable = '';
+                    if ($ajax_shortcodes_list && in_array($shortcode, $ajax_shortcodes_list)) $disable = 'selected="selected"';
+                    echo '<option value="' . $shortcode . '" ' . $disable . '>' . $shortcode . '</option>';
+                  }
+                  if ($freely_added_shortcodes) {
+                    foreach ($freely_added_shortcodes as $shortcode) {
+                      echo '<option value="' . $shortcode . '" selected="selected">' . $shortcode . '</option>';
+                    }
+                  }
+                  ?>
+                </select>
+                <button class="btn btn-primary" id="save-shortcodes"><?php esc_html_e('Save', 'nitropack'); ?></button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
     <!-- Go to app card End -->
+
+
   </div>
   <div class="col-span-1">
     <!-- Subscription Card -->
@@ -164,11 +199,11 @@ $max_page_views = '10000';
               </tr>
               <tr>
                 <td class="key"><?php esc_html_e('Page views', 'nitropack'); ?></td>
-                <td class="value" data-page-views><?php printf( esc_html__('%1$s out of %2$s', 'nitropack'), $page_views, $max_page_views); ?></td>
+                <td class="value" data-page-views><?php printf(esc_html__('%1$s out of %2$s', 'nitropack'), $page_views, $max_page_views); ?></td>
               </tr>
               <tr>
                 <td class="key"><?php esc_html_e('CDN bandwidth', 'nitropack'); ?></td>
-                <td class="value" data-cdn-bandwidth><?php printf( esc_html__('%1$s out of %2$s', 'nitropack'), $usage, $max_usage); ?></td>
+                <td class="value" data-cdn-bandwidth><?php printf(esc_html__('%1$s out of %2$s', 'nitropack'), $usage, $max_usage); ?></td>
               </tr>
             </tbody>
           </table>
@@ -193,7 +228,7 @@ $max_page_views = '10000';
                 <?php $sitemap = get_option('np_warmup_sitemap', false);
                 $toolTipDisplayState = $sitemap ? '' : 'hidden'; ?>
 
-                <h6><?php esc_html_e('Cache warmup', 'nitropack'); ?> <span class="badge badge-primary ml-2"><?php esc_html_e('Recommeneded', 'nitropack'); ?></span> <span class="tooltip-icon <?php echo $toolTipDisplayState; ?>" data-tooltip-target="tooltip-sitemap">
+                <h6><?php esc_html_e('Cache warmup', 'nitropack'); ?> <span class="badge badge-primary ml-2"><?php esc_html_e('Recommended', 'nitropack'); ?></span> <span class="tooltip-icon <?php echo $toolTipDisplayState; ?>" data-tooltip-target="tooltip-sitemap">
                     <img src="<?php echo plugin_dir_url(__FILE__) . 'images/info.svg'; ?>">
                   </span></h6>
                 <div id="tooltip-sitemap" role="tooltip" class="tooltip-container hidden">
@@ -218,7 +253,7 @@ $max_page_views = '10000';
                 <p><?php esc_html_e('Test NitroPack\'s features without affecting your visitors\' experience', 'nitropack'); ?>. <a href="https://support.nitropack.io/en/articles/8390292-test-mode" class="text-blue" target="_blank"><?php esc_html_e('Learn more', 'nitropack'); ?></a></p>
               </div>
 
-              <label class="inline-flex items-center cursor-pointer ml-auto" >
+              <label class="inline-flex items-center cursor-pointer ml-auto">
                 <input type="checkbox" class="sr-only peer" id="safemode-status">
 
                 <div class="toggle"></div>
@@ -310,14 +345,38 @@ $max_page_views = '10000';
         </div>
       </div>
       <div class="card-footer disconnect-container">
-        <a href="#" class="text-primary" id="disconnect-btn"><?php esc_html_e('Disconnect NitroPack plugin', 'nitropack'); ?></a>
+        <a class="text-primary btn-link" id="disconnect-btn"><?php esc_html_e('Disconnect NitroPack plugin', 'nitropack'); ?></a>
         <?php require_once NITROPACK_PLUGIN_DIR . 'view/modals/modal-disconnect.php'; ?>
       </div>
     </div>
     <!-- Basic Settings Card End -->
-  </div>
-</div>
+    <!-- Go to app Card -->
+    <div class="card app-card">
+      <div class="card-body">
+        <div class="flex items-center justify-between">
+          <p><?php esc_html_e('You can further configure how NitroPack\'s optimization behaves through your account', 'nitropack'); ?>.</p>
+          <?php
+          function getNitropackDashboardUrl() {
+            $siteId = nitropack_get_current_site_id();
+            $dashboardUrl = 'https://app.nitropack.io/dashboard';
 
+            if ($siteId !== null) {
+              $dashboardUrl .= '?update_session_website_id=' . urlencode($siteId);
+            }
+
+            return $dashboardUrl;
+          }
+          ?>
+          <a href="<?php echo esc_url(getNitropackDashboardUrl()); ?>" target="_blank" class="btn btn-primary ml-2 flex-shrink-0"><?php esc_html_e('Go to app', 'nitropack'); ?></a>
+        </div>
+      </div>
+    </div>
+    <!-- Go to app card End -->
+  </div>
+  <?php $notOptimizedCPTs = nitropack_filter_non_optimized();
+  if (!get_option('nitropack-noticeOptimizeCPT') && !empty($notOptimizedCPTs))  require_once NITROPACK_PLUGIN_DIR . 'view/modals/modal-not-optimized-CPT.php'; ?>
+</div>
+<?php require_once NITROPACK_PLUGIN_DIR . 'view/modals/modal-unsaved-changes.php'; ?>
 <script>
   ($ => {
     var getOptimizationsTimeout = null;
@@ -364,10 +423,11 @@ $max_page_views = '10000';
         $('[data-last-cache-purge]').text(data.last_cache_purge.timeAgo);
         if (data.last_cache_purge.reason) {
           $('[data-purge-reason]').text(data.last_cache_purge.reason);
+          $('[data-purge-reason]').attr('title', data.last_cache_purge.reason);
           $('#last-cache-purge-reason').show();
         } else {
           $('#last-cache-purge-reason').hide();
-        }        
+        }
         if (data.pending_count) {
           $("#pending-optimizations-count").text(data.pending_count);
           $("#pending-optimizations-section").show();
@@ -390,7 +450,7 @@ $max_page_views = '10000';
     }
 
     var getPlan = _ => {
-   
+
       var url = '<?php echo $planDetailsUrl; ?>';
       ((s, e, f) => {
         if (window.fetch) {
@@ -438,6 +498,7 @@ $max_page_views = '10000';
         NitropackUI.triggerToast('error', '<?php esc_html_e('Error while fetching plan data', 'nitropack'); ?>');
       }, __ => {});
     }
+
 
     $(document).on('click', "#compression-test-btn", e => {
       e.preventDefault();

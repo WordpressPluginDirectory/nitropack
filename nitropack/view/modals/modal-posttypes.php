@@ -19,29 +19,31 @@
             <div class="modal-body">
                 <div class="scrollbar-default overflow-auto">
                     <ul class="list-items">
-                        <?php foreach ($objectTypes as $objectType) { ?>
-                            <li class="list-item" id="type-<?php echo sanitize_title($objectType->label); ?>">
+                        <?php
+                        $nitropack_cpts = nitropack_get_CPTs_with_optimization_status();
+                        foreach ($nitropack_cpts as $slug => $npCPT) { ?>
+                            <li class="list-item" id="type-<?php echo $slug; ?>">
                                 <div class="list-item-body">
-                                    <div class="post-type-name"><?php echo $objectType->label; ?></div>
+                                    <div class="post-type-name"><?php echo $npCPT['name']; ?></div>
                                     <label class="inline-flex items-center cursor-pointer ml-auto">
-                                        <input type="checkbox" value="" class="sr-only peer cacheable-post-type" name="<?php echo $objectType->name; ?>" id="post-type-post-status" <?php if (in_array($objectType->name, $cacheableObjectTypes)) echo 'checked'; ?>>
+                                        <input type="checkbox" value="" class="sr-only peer cacheable-post-type" name="<?php echo $slug; ?>" id="post-type-post-status" <?php if ($npCPT['isOptimized']) echo 'checked'; ?>>
                                         <div class="toggle"></div>
                                     </label>
-                                </div>                           
-                            <?php if (!empty($objectType->taxonomies)) { ?>
-                                <?php foreach ($objectType->taxonomies as $taxonomyType) { ?>
-                                    <ul class="sub-menu">
-                                        <div class="list-item-body" id="tax-<?php echo sanitize_title($taxonomyType->label); ?>">
-                                            <div class="post-tax-name"><?php echo $taxonomyType->label; ?></div>
-                                            <label class="inline-flex items-center cursor-pointer ml-auto">
-                                                <input type="checkbox" class="sr-only peer cacheable-post-type" name="<?php echo $taxonomyType->name; ?>" id="post-type-post-status" <?php if (in_array($taxonomyType->name, $cacheableObjectTypes)) echo 'checked'; ?>>
-                                                <div class="toggle"></div>
-                                            </label>
+                                </div>
+                                <?php if (!empty($npCPT['taxonomies'])) { ?>
+                                    <?php foreach ($npCPT['taxonomies'] as $tax_slug => $taxonomyType) { ?>
+                                        <ul class="sub-menu">
+                                            <div class="list-item-body" id="tax-<?php echo $tax_slug; ?>">
+                                                <div class="post-tax-name"><?php echo $taxonomyType['name']; ?></div>
+                                                <label class="inline-flex items-center cursor-pointer ml-auto">
+                                                    <input type="checkbox" class="sr-only peer cacheable-post-type" name="<?php echo $tax_slug; ?>" id="post-type-post-status" <?php if ($taxonomyType['isOptimized']) echo 'checked'; ?>>
+                                                    <div class="toggle"></div>
+                                                </label>
 
-                                        </div>
-                                </ul>
+                                            </div>
+                                        </ul>
+                                    <?php } ?>
                                 <?php } ?>
-                            <?php } ?>
                             </li>
                         <?php } ?>
                     </ul>
@@ -66,7 +68,10 @@
                     nonce: nitroNonce,
                     cacheableObjectTypes: $('.cacheable-post-type:checked').map(function(i, el) {
                         return el.name;
-                    }).toArray()
+                    }).get(),
+                    noncacheableObjectTypes: $('.cacheable-post-type:not(:checked)').map(function(i, el) {
+                        return el.name;
+                    }).get()
                 },
                 dataType: "json",
                 success: function(resp) {

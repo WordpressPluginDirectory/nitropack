@@ -1029,6 +1029,134 @@ function nitropack_get_object_types() {
     return $objectTypes;
 }
 
+/**
+ * Retrievs all CPTs eligable for optimization and checking if they are optimized
+ */
+function nitropack_get_CPTs_with_optimization_status() {
+
+    $cacheableObjectTypes = nitropack_get_cacheable_object_types();
+    $objectTypes = nitropack_get_object_types();
+
+    $result = [
+        "home" => [
+            'name' => 'Home',
+            'isOptimized' => in_array('home', $cacheableObjectTypes) ? 1 : 0,
+        ],
+        "archive" => [
+            'name' => 'Archive',
+            'isOptimized' => in_array('archive', $cacheableObjectTypes) ? 1 : 0,
+        ]
+    ];
+
+    // Determine new object types by comparing current with stored
+    foreach ($objectTypes as $slug => $objectType) {
+        $isOptimized = in_array($objectType->name, $cacheableObjectTypes);
+        $taxonomies = [];
+
+        if (!empty($objectType->taxonomies)) {
+            foreach ($objectType->taxonomies as $tax) {
+                $taxName = $tax->name;
+                $taxonomies[$taxName] = [
+                    'isOptimized' => in_array($taxName, $cacheableObjectTypes) ? 1 : 0,
+                    'name' => $tax->labels->name
+                ];
+            }
+        }
+
+        $result[$slug] = [
+            'isOptimized' => $isOptimized ? 1 : 0,
+            'name' => $objectType->labels->name,
+            'taxonomies' => $taxonomies
+        ];
+    }
+
+    return $result;
+}
+/**
+ * Filters the CPTs which are not optimized.
+ * Show it only once.
+ */
+function nitropack_filter_non_optimized() {
+    $filteredArr = [];
+    $objectTypes = nitropack_get_CPTs_with_optimization_status();
+    foreach ($objectTypes as $slug => $objectType) {
+        $includeObjectType = !$objectType['isOptimized'];
+        $filteredTaxonomies = [];
+        if (isset($objectType['taxonomies'])) {
+            foreach ($objectType['taxonomies'] as $taxSlug => $taxonomy) {
+                if (!$taxonomy['isOptimized']) {
+                    $filteredTaxonomies[$taxSlug] = $taxonomy;
+                    $includeObjectType = true; // Include CPT if it has any non-optimized taxonomy
+                }
+            }
+        }
+        if ($includeObjectType) {
+            $filteredArr[$slug] = [
+                'isOptimized' => $objectType['isOptimized'],
+                'name' => $objectType['name'],
+                'taxonomies' => $filteredTaxonomies
+            ];
+        }
+    }
+    return $filteredArr;
+}
+
+function nitropack_autooptimize_new_post_types_and_taxonomies() {
+    //start optimizing after the notice is shown
+    if (!get_option('nitropack-noticeOptimizeCPT')) return;
+    //check if the non-optimized CPTs are stored, if not store them
+    $nonCacheableObjectTypes = get_option('nitropack-nonCacheableObjectTypes');
+    if (!$nonCacheableObjectTypes) {
+        $notOptimizedCPTs = nitropack_filter_non_optimized();
+        $nonCacheableObjectTypes = [];
+        foreach ($notOptimizedCPTs as $slug => $objectType) {
+            if (!$objectType['isOptimized']) {
+                $nonCacheableObjectTypes[] = $slug;
+            }
+            foreach ($objectType['taxonomies'] as $taxSlug => $taxonomy) {
+                if (!$taxonomy['isOptimized']) {
+                    $nonCacheableObjectTypes[] = $taxSlug;
+                }
+            }
+        }
+        update_option('nitropack-nonCacheableObjectTypes', $nonCacheableObjectTypes);
+    }
+
+    $postTypes = get_post_types(array('public' => true), 'objects');
+    $cacheableObjectTypes = nitropack_get_cacheable_object_types();
+    foreach ($postTypes as $slug => $postType) {
+        if ($postType->public) {
+            // Check and add post type to cacheable object types
+            if (!in_array($slug, $nonCacheableObjectTypes) && !in_array($slug, $cacheableObjectTypes)) {
+                $cacheableObjectTypes[] = $slug;
+            }
+
+            // Fetch and add connected taxonomies
+            $taxonomies = get_object_taxonomies($slug, 'names');
+            foreach ($taxonomies as $taxonomy) {
+                if (!in_array($taxonomy, $nonCacheableObjectTypes) && !in_array($taxonomy, $cacheableObjectTypes)) {
+                    $cacheableObjectTypes[] = $taxonomy;
+                }
+            }
+        }
+    }
+
+    update_option('nitropack-cacheableObjectTypes', $cacheableObjectTypes);
+}
+
+function nitropack_dismiss_notice_forever() {
+
+    nitropack_verify_ajax_nonce($_REQUEST);
+
+    $option_name = $_REQUEST['notice'];
+    update_option($option_name, 1);
+
+    nitropack_json_and_exit(array(
+        "type" => "success",
+    ));
+}
+
+
 function nitropack_get_cacheable_object_types() {
     return apply_filters("nitropack_cacheable_post_types", get_option("nitropack-cacheableObjectTypes", nitropack_get_default_cacheable_object_types()));
 }
@@ -1100,7 +1228,7 @@ function load_nitropack_scripts_styles($page) {
         wp_enqueue_script('nitropack_flowbite_js', plugin_dir_url(__FILE__) . 'view/javascript/flowbite.min.js', array(), NITROPACK_VERSION, true);
         wp_enqueue_script('nitropack_ui', plugin_dir_url(__FILE__) . 'view/javascript/nitropackUI.js', array(), NITROPACK_VERSION, true);
 
-        if (get_nitropack()->isConnected()) {
+        if (get_nitropack()->isConnected() && !isset($_GET['subpage'])) {
             wp_enqueue_script('nitropack_settings', plugin_dir_url(__FILE__) . 'view/javascript/np_settings.js', array(), NITROPACK_VERSION, true);
             wp_localize_script(
                 'nitropack_settings',
@@ -1113,6 +1241,9 @@ function load_nitropack_scripts_styles($page) {
                     'est_cachewarmup_msg' => esc_html__('Estimating optimizations usage', 'nitropack'),
                 )
             );
+            //select2
+            wp_register_script('np-select2', 'https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js', array('jquery'), NITROPACK_VERSION, true);
+            wp_enqueue_script('np-select2');
         }
     }
 }
@@ -2238,6 +2369,7 @@ function nitropack_detect_changes_and_clean_post_cache($post) {
     }
 }
 
+
 function nitropack_handle_post_transition($new, $old, $post) {
     if (wp_is_post_revision($post)) return;
     if (!empty($post->ID) && in_array($post->ID, \NitroPack\WordPress\NitroPack::$ignoreUpdatePostIDs)) return;
@@ -2275,15 +2407,22 @@ function nitropack_handle_post_transition($new, $old, $post) {
             case "custom_css":
                 nitropack_invalidate(NULL, NULL, sprintf("Invalidation of all pages due to modifying custom CSS"));
                 break;
-                default:
+            default:
                 if ($new == "future") {
                     nitropack_clean_post_cache($post, array('added' => nitropack_get_taxonomies($post)), true, sprintf("Invalidate related pages due to scheduling %s '%s'", $nicePostTypeLabel, $post->post_title));
                 } else if ($new === 'publish' && $old === 'trash') {
                     nitropack_clean_post_cache($post, array('added' => nitropack_get_taxonomies($post)), true, sprintf("Invalidate related pages due to restoring %s '%s'", $nicePostTypeLabel, $post->post_title));
                 } else if ($new == "publish" && $old != "publish") {
-                    $post->nicePostTypeLabel = $nicePostTypeLabel;
-                    set_transient($post->ID . '_np_first_publish', $post, 120);
-                }  else if ($new == "trash" && $old == "publish") {
+                    /* Handle first publish */
+                    // set_transient($post->ID . '_np_first_publish', $post, 120);
+                    \NitroPack\WordPress\NitroPack::$np_loggedWarmups[] = get_permalink($post->ID);
+                    if (!defined('NITROPACK_PURGE_CACHE')) {
+                        nitropack_clean_post_cache($post, array('added' => nitropack_get_taxonomies($post)), true, sprintf("Invalidate related pages due to publishing %s '%s'", $nicePostTypeLabel, $post->post_title), true);
+                    }
+                    if ($post->post_type === 'post') {
+                        nitropack_invalidate(NULL, "pageType:blogindex", 'Invalidation of blog page due to changing related post status');
+                    }
+                } else if ($new == "trash" && $old == "publish") {
                     nitropack_clean_post_cache($post, array('deleted' => nitropack_get_taxonomies($post)), true, sprintf("Invalidate related pages due to deleting %s '%s'", $nicePostTypeLabel, $post->post_title), true);
                 } else if ($new == "private" && $old == "publish") {
                     nitropack_clean_post_cache($post, array('deleted' => nitropack_get_taxonomies($post)), true, sprintf("Invalidate related pages due to making %s '%s' private", $nicePostTypeLabel, $post->post_title), true);
@@ -2294,7 +2433,6 @@ function nitropack_handle_post_transition($new, $old, $post) {
                         nitropack_detect_changes_and_clean_post_cache($post);
                     }
                     if ($new == 'publish') {
-                        /* we need to handle the case  here for new CPT posts to be optimized initially. No need to reoptimize an untrashed post */
                         \NitroPack\WordPress\NitroPack::$np_loggedWarmups[] = get_permalink($post->ID);
                     }
                 }
@@ -2343,7 +2481,6 @@ function nitropack_sot($object_id, $terms, $tt_ids, $taxonomy, $append, $old_tt_
         $purgeCache = !nitropack_compare_posts($tt_ids, $old_tt_ids);
         $cleanCache = $purgeCache ? "YES" : "NO";
         if ($purgeCache) {
-            $post = get_post($object_id);
             \NitroPack\WordPress\NitroPack::$np_loggedWarmups[] = get_permalink($post);
             nitropack_clean_post_cache($post);
             define('NITROPACK_PURGE_CACHE', true);
@@ -2832,6 +2969,41 @@ function nitropack_set_auto_cache_purge_ajax() {
         ));
     }
 }
+function nitropack_set_ajax_shortcodes_ajax() {
+    nitropack_verify_ajax_nonce($_REQUEST);
+
+    $new_shortcodes = isset($_POST['shortcodes']) ? $_POST['shortcodes'] : null;
+    $enabled = isset($_POST['enabled']) ? $_POST['enabled'] : null;
+
+    if ($new_shortcodes === null && $enabled === null) {
+        nitropack_json_and_exit(array(
+            "type" => "error",
+            "message" => nitropack_admin_toast_msgs('error')
+        ));
+    }
+    $nitropack = get_nitropack();
+    $siteConfig = $nitropack->Config->get();
+    $configKey = \NitroPack\WordPress\NitroPack::getConfigKey();
+
+    if (!is_null($enabled)) {
+        $siteConfig[$configKey]['options_cache']['ajaxShortcodes']['enabled'] = $enabled === '1';
+    }
+
+    if (!is_null($new_shortcodes)) {
+        $existing_options = (is_array($new_shortcodes) && $new_shortcodes[0] === '') ? [] : $new_shortcodes;
+        if ($existing_options) $siteConfig[$configKey]['options_cache']['ajaxShortcodes']['shortcodes'] = $existing_options;
+    }
+    $updated = $nitropack->Config->set($siteConfig);
+
+    if ($updated) {
+        nitropack_json_and_exit(array("type" => "success", "message" => nitropack_admin_toast_msgs('success')));
+    } else {
+        nitropack_json_and_exit(array(
+            "type" => "error",
+            "message" => nitropack_admin_toast_msgs('error')
+        ));
+    }
+}
 
 function nitropack_set_cart_cache_ajax() {
     nitropack_verify_ajax_nonce($_REQUEST);
@@ -2897,7 +3069,16 @@ function nitropack_set_cacheable_post_types() {
     nitropack_verify_ajax_nonce($_REQUEST);
     $currentCacheableObjectTypes = nitropack_get_cacheable_object_types();
     $cacheableObjectTypes = !empty($_POST["cacheableObjectTypes"]) ? $_POST["cacheableObjectTypes"] : array();
+    $noncacheableObjectTypes = !empty($_POST["noncacheableObjectTypes"]) ? $_POST["noncacheableObjectTypes"] : array();
+
+    /* Used for non optimized CPT modal which is shown only once */
+    $append = $_POST["append"];
+    if (isset($append) && $append == "true") {
+        $cacheableObjectTypes = array_merge($currentCacheableObjectTypes, $cacheableObjectTypes);
+    }
+
     update_option("nitropack-cacheableObjectTypes", $cacheableObjectTypes);
+    update_option("nitropack-nonCacheableObjectTypes", $noncacheableObjectTypes);
 
     foreach ($currentCacheableObjectTypes as $objectType) {
         if (!in_array($objectType, $cacheableObjectTypes)) {
@@ -3290,7 +3471,7 @@ function nitropack_event($event, $nitro = null, $additional_meta_data = null) {
         $domain = !empty($_SERVER["HTTP_HOST"]) ? $_SERVER["HTTP_HOST"] : "Unknown";
 
 
-        if (class_exists('WooCommerce')) {
+        if (is_plugin_active('woocommerce/woocommerce.php')) {
             $platform = 'WooCommerce';
         } else {
             $platform = 'WordPress';
@@ -3884,13 +4065,24 @@ function nitropack_plugin_notices() {
                 foreach (\NitroPack\WordPress\NitroPack::$optionsToCache as $opt) {
                     if (is_array($opt)) {
                         foreach ($opt as $option => $suboption) {
-                            if (empty($siteConfig['options_cache'][$option][$suboption]) || $siteConfig['options_cache'][$option][$suboption] != get_option($option)[$suboption]) {
+                            // Check if the option exists, is an array, and if the suboption exists
+                            if (
+                                !isset($siteConfig['options_cache'][$option]) ||
+                                !is_array($siteConfig['options_cache'][$option]) ||
+                                !isset($siteConfig['options_cache'][$option][$suboption]) ||
+                                $siteConfig['options_cache'][$option][$suboption] !== get_option($option)[$suboption]
+                            ) {
                                 $optionsMistmatch = true;
                                 break 2;
                             }
                         }
                     } else {
-                        if (!array_key_exists($opt, $siteConfig['options_cache']) || $siteConfig['options_cache'][$opt] != get_option($opt)) {
+                        // Check if the option exists and is not a boolean before comparing
+                        if (
+                            !isset($siteConfig['options_cache'][$opt]) ||
+                            is_bool($siteConfig['options_cache'][$opt]) ||
+                            $siteConfig['options_cache'][$opt] !== get_option($opt)
+                        ) {
                             $optionsMistmatch = true;
                             break;
                         }

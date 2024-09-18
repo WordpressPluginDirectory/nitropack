@@ -75,15 +75,24 @@ SCRIPT;
         sort($jsons);
         return base64_encode(json_encode($jsons));
     }
+    /* Merge shortcodes from wp-config and site config */
     private function mergeShortcodes() {
 
+        $siteConfig = get_nitropack()->getSiteConfig();        
+        $options = $siteConfig['options_cache'];
+
+        $ajax_shortcodes = isset($options['ajaxShortcodes']) ? $options['ajaxShortcodes'] : null; //initially ajaxShortcodes is empty
+
+        if (self::isEnabled() && (!empty($ajax_shortcodes['shortcodes']) && is_array($ajax_shortcodes['shortcodes']))) {
+            $this->shortcodes = $ajax_shortcodes['shortcodes'];
+        }
         if (defined("NITROPACK_AJAX_SHORTCODES") && strpos(NITROPACK_AJAX_SHORTCODES, ',') !== false) {
             $wp_config_shortcodes = explode(',', NITROPACK_AJAX_SHORTCODES);
             $this->shortcodes = array_unique(array_merge($this->shortcodes, $wp_config_shortcodes));
         }
     }
     public function init($stage) {
-        if (!defined("NITROPACK_AJAX_SHORTCODES")) {
+        if (!defined("NITROPACK_AJAX_SHORTCODES") && !self::isEnabled()) {
             // This init method can be run at any stage. This gives the opportunity to define the constant at a later point
             // For example in a MU plugin
             return true;
@@ -118,7 +127,7 @@ SCRIPT;
     }
 
     private function startBuffering() {
-        ob_start(function ($buffer) {
+        ob_start(function($buffer) {
             return str_replace($this->emptyScript, $this->generateNitroScLoader(), $buffer);
         }, 0, PHP_OUTPUT_HANDLER_FLUSHABLE | PHP_OUTPUT_HANDLER_REMOVABLE);
     }
@@ -126,16 +135,16 @@ SCRIPT;
     public function add_scripts() {
         wp_register_script($this->scriptHandle, '', [], '1.0.0', false);
         wp_add_inline_script($this->scriptHandle, $this->emptyScript);
-        //wp_add_inline_script($this->scriptHandle, $this->generateNitroScLoader());
         wp_enqueue_script($this->scriptHandle);
-
+        
         add_filter('wp_inline_script_attributes', function ($attr, $js) {
 
-            if (isset($attr['id']) && strpos($attr['id'], $this->scriptHandle) === 0) {
-                $attr = array_merge(array('nitro-exclude' => true), $attr);
-            }
+            if(isset($attr['id']) && strpos($attr['id'], $this->scriptHandle) === 0) {
+                $attr = array_merge(array( 'nitro-exclude' => true ), $attr);
+            } 
 
             return $attr;
+
         }, 10, 2);
     }
 
@@ -175,5 +184,10 @@ SCRIPT;
         }
 
         wp_send_json_success($resp);
+    }
+    public function isEnabled() {
+        $siteConfig = get_nitropack()->getSiteConfig();
+        return !empty($siteConfig['options_cache']['ajaxShortcodes']['enabled'])
+            && $siteConfig['options_cache']['ajaxShortcodes']['enabled'] == 1;
     }
 }

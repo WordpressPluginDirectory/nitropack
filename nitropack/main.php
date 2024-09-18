@@ -3,7 +3,7 @@
 Plugin Name:  NitroPack
 Plugin URI:   https://nitropack.io/platform/wordpress
 Description:  Automatic optimization for site speed and Core Web Vitals. Use 35+ features, including Caching, image optimization, critical CSS, and Cloudflare CDN.
-Version:      1.16.8
+Version:      1.17.0
 Author:       NitroPack Inc.
 Author URI:   https://nitropack.io/
 License:      GPL2
@@ -59,15 +59,9 @@ add_filter('nitro_script_output', function ($script) {
 });
 add_action('pre_post_update', 'nitropack_log_post_pre_update', 10, 3);
 add_filter('woocommerce_rest_pre_insert_product_object', 'nitropack_log_product_pre_api_update', 10, 3);
-// add_action( 'clean_post_cache', 'nitropack_post_updated', 10, 3);
-// add_action( 'post_updated', 'nitropack_post_updated', 10, 3);
-// add_action( 'save_post', 'nitropack_post_updated', 10, 3);
-// add_action( 'edited_term_taxonomy', 'nitropack_post_updated', 10, 3);
-// add_action( 'woocommerce_update_product', 'nitropack_postmeta_updated', 10, 4);
-add_action('updated_postmeta', 'nitropack_postmeta_updated', 10, 4);
 add_action('set_object_terms', 'nitropack_sot', 10, 6);
 add_action('transition_post_status', 'nitropack_handle_post_transition', 10, 3);
-add_action('publish_post', 'nitropack_handle_first_publish', 10, 1);
+//add_action('publish_post', 'nitropack_handle_first_publish', 10, 1);
 add_action('transition_comment_status', 'nitropack_handle_comment_transition', 10, 3);
 add_action('comment_post', 'nitropack_handle_comment_post', 10, 2);
 add_action('woocommerce_reduce_order_stock', 'custom_reduce_stock_after_order_placed');
@@ -86,7 +80,9 @@ add_action('woocommerce_rest_insert_product_object', function ($product, $reques
     if (!$creating) {
 
         $post = get_post($product->get_id());
-        nitropack_detect_changes_and_clean_post_cache($post);
+        if (!defined('NITROPACK_PURGE_CACHE')) {
+            nitropack_detect_changes_and_clean_post_cache($post);
+        }
     }
 }, 10, 3);
 
@@ -126,6 +122,7 @@ if (is_admin()) {
     add_action('wp_ajax_nitropack_set_compression_ajax', 'nitropack_set_compression_ajax');
     add_action('wp_ajax_nitropack_set_stock_reduce_status', 'nitropack_set_stock_reduce_status');
     add_action('wp_ajax_nitropack_set_auto_cache_purge_ajax', 'nitropack_set_auto_cache_purge_ajax');
+    add_action('wp_ajax_nitropack_set_ajax_shortcodes_ajax', 'nitropack_set_ajax_shortcodes_ajax');
     add_action('wp_ajax_nitropack_set_cart_cache_ajax', 'nitropack_set_cart_cache_ajax');
     add_action('wp_ajax_nitropack_set_bb_cache_purge_sync_ajax', 'nitropack_set_bb_cache_purge_sync_ajax');
     add_action('wp_ajax_nitropack_set_legacy_purge_ajax', 'nitropack_set_legacy_purge_ajax');
@@ -146,6 +143,8 @@ if (is_admin()) {
     add_action('wp_ajax_nitropack_disable_safemode', 'nitropack_disable_safemode');
     add_action('wp_ajax_nitropack_safemode_status', 'nitropack_safemode_status');
     add_action('wp_ajax_nitropack_rml_notification', 'nitropack_rml_notification');
+    add_action('admin_init', 'nitropack_autooptimize_new_post_types_and_taxonomies');
+    add_action('wp_ajax_nitropack_dismiss_notice_forever', 'nitropack_dismiss_notice_forever');
     add_action('activated_plugin', 'nitropack_upgrade_handler');
     add_action('deactivated_plugin', 'nitropack_upgrade_handler');
     add_action('upgrader_process_complete', 'nitropack_upgrade_handler');

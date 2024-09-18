@@ -103,6 +103,12 @@ svg {
 .mb-4 {
     margin-bottom: 1rem;
 }
+.mb-auto {
+    margin-bottom: auto;
+}
+.mt-auto {
+    margin-top: auto;
+}
 .ml-auto {
     margin-left: auto;
 }
@@ -119,7 +125,7 @@ svg {
     display: none !important;
 }
 .w-full {
-    width: 100%;
+    width: 100% !important;
 }
 .max-h-full {
     max-height: 100%;

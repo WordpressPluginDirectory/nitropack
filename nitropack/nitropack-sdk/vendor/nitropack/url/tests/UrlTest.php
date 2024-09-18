@@ -118,6 +118,22 @@ class UrlTest extends TestCase
         $this->assertEquals('https://example.com/a/b/images%2Fcontent2%2F0-1541085431275.jpg', $url->getNormalized());
     }
 
+    /**
+     * @see https://bugs.php.net/bug.php?id=52923
+     * @see https://github.com/joomla-framework/uri/blob/3.0.0/src/UriHelper.php#L32
+     */
+    public function testPathContainsControlChars()
+    {
+        $this->markTestSkipped();
+
+        $path = urldecode('/img/random-%03image.webp');
+        $location = 'https://localhost' . $path;
+
+        $url = new Url($location);
+        $this->assertSame($path, $url->getPath());
+        $this->assertSame($location, $url->getNormalized());
+    }
+
     public function testPathNavigationResolve() {
         $url = new Url('https://example.com/a/b/../c');
         $this->assertEquals('https://example.com/a/c', $url->getNormalized(true));

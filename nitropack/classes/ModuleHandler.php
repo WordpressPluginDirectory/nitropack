@@ -44,7 +44,7 @@ class ModuleHandler {
         "NitroPack/Integration/Plugin/FusionBuilder",
         "NitroPack/Integration/Plugin/ThriveTheme",
         "NitroPack/Integration/Plugin/AeliaCurrencySwitcher",
-        "NitroPack/Integration/Plugin/Woocommerce",
+        Integration\Plugin\WooCommerce::class,
         "NitroPack/Integration/Plugin/WoocommerceCacheHandler",
         "NitroPack/Integration/Plugin/AdvancedMathCaptcha",
         "NitroPack/Integration/Plugin/TheEventsCalendar",
@@ -59,8 +59,9 @@ class ModuleHandler {
         "NitroPack/Integration/Plugin/WPForms",
         "NitroPack/Integration/Plugin/GeoTargetingWP",
         "NitroPack/Integration/Plugin/WPML",
+        Integration\Plugin\ACF::class,
         "NitroPack/Feature/SubrequestCache",
-        "NitroPack/Feature/AjaxShortcodes",
+        Feature\AjaxShortcodes::class,
     ];
     private static $loadedModules = [];
     private static $stage = "very_early";

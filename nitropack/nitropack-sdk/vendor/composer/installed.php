@@ -33,7 +33,7 @@
         'nitropack/url' => array(
             'pretty_version' => 'dev-master',
             'version' => 'dev-master',
-            'reference' => '534391466412aac194310254d14a5023649f68f6',
+            'reference' => '345d42a8fe92ea0b22215325b154d4cadbdaa485',
             'type' => 'library',
             'install_path' => __DIR__ . '/../nitropack/url',
             'aliases' => array(

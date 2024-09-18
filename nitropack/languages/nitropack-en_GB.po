@@ -926,7 +926,7 @@ msgid "Reason:"
 msgstr ""
 
 #: view/dashboard.php:196
-msgid "Recommeneded"
+msgid "Recommended"
 msgstr ""
 
 #: view/modals/modal-modes.php:26

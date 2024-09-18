@@ -1,4 +1,5 @@
 <?php
+
 namespace NitroPack\WordPress;
 
 use \NitroPack\SDK\Filesystem;
@@ -14,8 +15,9 @@ class NitroPack {
     public static $np_loggedWarmups = array();
     public static $optionsToCache = [
         'cache_handler_cache_handler',
-        'woocommerce_default_customer_address', 
-        [ "wc_aelia_currency_switcher" => "ipgeolocation_enabled"]
+        'woocommerce_default_customer_address',
+        ['ajaxShortcodes' => ['enabled' => false, 'shortcodes' => []]],
+        ["wc_aelia_currency_switcher" => "ipgeolocation_enabled"]
     ];
 
     public static function getInstance() {
@@ -41,12 +43,12 @@ class NitroPack {
             $wpContentDir = $pathResolved;
             self::$nitroDirMigrated = true;
         }
-        
+
         if ($isWpe) {
             $currentFilePath = preg_replace("@^/sites/@", "/nas/content/live/", $currentFilePath);
             $wpContentDir = preg_replace("@^/sites/@", "/nas/content/live/", $wpContentDir);
         }
-        
+
         $oldNitroDirs = [
             nitropack_trailingslashit($wpContentDir) . 'nitropack',
             nitropack_trailingslashit($wpContentDir) . 'cache/' . substr(md5($currentFilePath), 0, 7) . "-nitropack",
@@ -104,7 +106,7 @@ class NitroPack {
             $expectedNitroDir = $nitroDir;
             self::$nitroConfigMigrated = true;
         }
-        
+
         if ($isWpe) {
             $nitroDir = preg_replace("@^/sites/@", "/nas/content/live/", $nitroDir);
             $expectedNitroDir = $nitroDir;
@@ -207,9 +209,9 @@ class NitroPack {
     public function getSiteConfig() {
         $siteConfig = null;
         $npConfig = $this->Config->get();
-	    $currentUrl = $this -> getCurrentUrl();
+        $currentUrl = $this->getCurrentUrl();
 
-	    $matchLength = 0;
+        $matchLength = 0;
 
         foreach ($npConfig as $siteUrl => $config) {
             if (stripos($siteUrl, "www.") === 0) {
@@ -290,6 +292,10 @@ class NitroPack {
         $alwaysBuffer = defined("NITROPACK_ALWAYS_BUFFER") ? NITROPACK_ALWAYS_BUFFER : true;
         $configKey = self::getConfigKey();
         $staticConfig = $this->Config->get();
+        //grab existing ajaxShortcodes settings
+        if (isset($staticConfig[$configKey]['options_cache']['ajaxShortcodes'])) {
+            $ajaxShortcodes_settings = $staticConfig[$configKey]['options_cache']['ajaxShortcodes'];
+        }
         $staticConfig[$configKey] = array(
             "siteId" => $siteId,
             "siteSecret" => $siteSecret,
@@ -315,23 +321,48 @@ class NitroPack {
             "options_cache" => [],
             "additional_domains" => $this->getAdditionalDomains($siteId, $siteSecret),
         );
+
         foreach (self::$optionsToCache as $opt) {
             if (is_array($opt)) {
-                foreach($opt as $option => $suboption) {
-                    if (empty($staticConfig[$configKey]["options_cache"][$option])) {
+                foreach ($opt as $option => $suboption) {
+                    // Ensure the top-level option array exists
+                    if (!isset($staticConfig[$configKey]["options_cache"][$option]) || !is_array($staticConfig[$configKey]["options_cache"][$option])) {
                         $staticConfig[$configKey]["options_cache"][$option] = [];
                     }
-                    $optionValue = get_option($option);
-                    if (!empty($optionValue)) {
-                        $staticConfig[$configKey]["options_cache"][$option][$suboption] = $optionValue[$suboption];
+
+                    // Handle cases where the suboption is itself an array (e.g., 'shortcodes')
+                    if (is_array($suboption)) {
+                        foreach ($suboption as $suboptKey => $suboptValue) {
+                            // Ensure the nested array exists
+                            if (!isset($staticConfig[$configKey]["options_cache"][$option][$suboptKey]) || !is_array($staticConfig[$configKey]["options_cache"][$option][$suboptKey])) {
+                                $staticConfig[$configKey]["options_cache"][$option][$suboptKey] = [];
+                            }
+                            $optionValue = get_option($option);
+
+                            if (!empty($optionValue) && is_array($optionValue) && isset($optionValue[$suboptKey])) {
+                                $staticConfig[$configKey]["options_cache"][$option][$suboptKey] = $optionValue[$suboptKey];
+                            } else {
+                                $staticConfig[$configKey]["options_cache"][$option][$suboptKey] = $suboptValue;
+                            }
+                        }
                     } else {
-                        $staticConfig[$configKey]["options_cache"][$option][$suboption] = null;
+                        $optionValue = get_option($option);
+
+                        if (!empty($optionValue) && is_array($optionValue) && isset($optionValue[$suboption])) {
+                            $staticConfig[$configKey]["options_cache"][$option][$suboption] = $optionValue[$suboption];
+                        } else {
+                            $staticConfig[$configKey]["options_cache"][$option][$suboption] = null;
+                        }
                     }
                 }
             } else {
+                // Handle non-array options directly
                 $staticConfig[$configKey]["options_cache"][$opt] = get_option($opt);
             }
         }
+        //handle existing options which we want to re-use
+        if (!empty($ajaxShortcodes_settings)) $staticConfig[$configKey]["options_cache"]['ajaxShortcodes'] = $ajaxShortcodes_settings;
+
         $configSetResult = $this->Config->set($staticConfig);
 
         if (\NitroPack\Integration\Plugin\AeliaCurrencySwitcher::isActive()) {
@@ -469,12 +500,12 @@ class NitroPack {
      */
     public function getCurrentUrl() {
 
-        if ( defined('NITROPACK_HOST') ) {
+        if (defined('NITROPACK_HOST')) {
 
             return NITROPACK_HOST;
         }
 
-        if (! empty( $_SERVER['HTTP_X_FORWARDED_HOST'] )) {
+        if (! empty($_SERVER['HTTP_X_FORWARDED_HOST'])) {
             $host = $_SERVER['HTTP_X_FORWARDED_HOST'];
         } else {
             $host = !empty($_SERVER["HTTP_HOST"]) ? $_SERVER["HTTP_HOST"] : "";
@@ -483,20 +514,20 @@ class NitroPack {
         $uri = !empty($_SERVER["REQUEST_URI"]) ? $_SERVER["REQUEST_URI"] : "";
         $currentUrl = $host . $uri;
 
-        if (empty($currentUrl) || (defined( 'WP_CLI' ) && WP_CLI && trim($currentUrl) == "localhost")) {
+        if (empty($currentUrl) || (defined('WP_CLI') && WP_CLI && trim($currentUrl) == "localhost")) {
 
-	        if (function_exists('get_site_url')) {
-		        $host = apply_filters('nitropack_current_host', get_site_url());
-	        } elseif (function_exists('get_option')) {
-		        $host = apply_filters('nitropack_current_host', get_option('siteurl'));
-	        }
+            if (function_exists('get_site_url')) {
+                $host = apply_filters('nitropack_current_host', get_site_url());
+            } elseif (function_exists('get_option')) {
+                $host = apply_filters('nitropack_current_host', get_option('siteurl'));
+            }
 
-			if ($host != '') {
-				$site_url = parse_url($host);
-				if (is_array($site_url) && isset($site_url["host"]) && !empty($site_url["host"])) {
-					$currentUrl = $site_url["host"];
-				}
-			}
+            if ($host != '') {
+                $site_url = parse_url($host);
+                if (is_array($site_url) && isset($site_url["host"]) && !empty($site_url["host"])) {
+                    $currentUrl = $site_url["host"];
+                }
+            }
         }
 
         if (stripos($currentUrl, "www.") === 0) {
@@ -511,7 +542,7 @@ class NitroPack {
             $path_parts = explode('/', $path);
             $final_parts = array();
 
-            foreach($path_parts as $part) {
+            foreach ($path_parts as $part) {
                 if ($part == ".") {
                     continue;
                 } else if ($part == '..') {

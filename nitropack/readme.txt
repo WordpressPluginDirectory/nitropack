@@ -2,9 +2,9 @@
 Contributors: nitropack
 Tags: speed, cache, performance, optimize pagespeed, lazy load, cdn, cache, critical css
 Requires at least: 4.7
-Tested up to: 6.6.1
+Tested up to: 6.6.2
 Requires PHP: 5.6
-Stable tag: 1.16.8
+Stable tag: 1.17.0
 License: GNU General Public License, version 2
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -278,6 +278,13 @@ Yes, the plugin uses the [Intercom Chat Widget](https://widget.intercom.io), whi
 
 
 == Changelog ==
+= 1.17.0 =
+* New Feature: Auto-optimize Custom Post Types
+* New Feature: AJAX shortcodes with UI setting
+* Improvement: WooCommerce compatibility  - scheduled prices
+* Improvement: Better checking whether it's WordPress or WooCommerce in App Dashboard
+* Improvement: ACF compatibility - handle ACF fields better
+
 = 1.16.8 =
 * Improvement: Security for AJAX shortcodes
 

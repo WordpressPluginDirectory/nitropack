@@ -73,7 +73,7 @@
             "source": {
                 "type": "git",
                 "url": "git@bitbucket.org:nitropack/url.git",
-                "reference": "534391466412aac194310254d14a5023649f68f6"
+                "reference": "345d42a8fe92ea0b22215325b154d4cadbdaa485"
             },
             "require": {
                 "php": "^5.6|^7.0|^8.0"
@@ -81,7 +81,7 @@
             "require-dev": {
                 "phpunit/phpunit": "^5.7"
             },
-            "time": "2024-08-08T09:14:16+00:00",
+            "time": "2024-08-27T11:43:23+00:00",
             "default-branch": true,
             "type": "library",
             "installation-source": "source",
